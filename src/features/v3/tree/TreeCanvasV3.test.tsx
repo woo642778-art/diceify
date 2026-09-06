@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { DiceTreeNodeV3 } from "../../../game-data/types";
 import { gameDataV3 } from "../../../game-data/load";
-import { TreeCanvasV3, canIncrementNodeV3, familyInvestmentLevelsV3, normalizeTreeSearchText, prerequisitesSatisfiedV3, visibleTreeNodeIdsV52 } from "./TreeCanvasV3";
+import { TreeCanvasV3, canIncrementNodeV3, familyInvestmentLevelsV3, normalizeTreeSearchText, prerequisiteClosureIdsV57, prerequisitesSatisfiedV3, visibleTreeNodeIdsV52 } from "./TreeCanvasV3";
 
 afterEach(cleanup);
 
@@ -76,6 +76,14 @@ describe("TreeCanvasV3", () => {
     expect(canIncrementNodeV3(nodes[0], { root: 2 }, {})).toBe(false);
   });
 
+  it("traces every prerequisite to the selected node and can hide cost labels", () => {
+    expect([...prerequisiteClosureIdsV57(nodes, "locked")]).toEqual(["locked", "root"]);
+    renderTree({ selectedNodeId: "locked", showCosts: false, focusPrerequisites: true });
+    expect(screen.queryByTestId("v41-cost-root")).not.toBeInTheDocument();
+    expect(screen.getByTestId("v3-edge-root-locked")).toHaveClass("is-focus-path");
+    expect(screen.getByTestId("v3-edge-root-child")).toHaveClass("is-context-dimmed");
+  });
+
   it("counts effective invested ranks by family without double-counting simulations", () => {
     expect(familyInvestmentLevelsV3(nodes, { root: 1, child: 1 }, { child: 3, locked: 1 })).toEqual({
       nature: 0,
@@ -107,7 +115,7 @@ describe("TreeCanvasV3", () => {
     expect(screen.getByTestId("v44-tree-search-status")).toHaveTextContent("1개 검색 결과");
     expect(screen.getByTestId("v3-node-child")).not.toHaveClass("is-dimmed");
     expect(screen.getByTestId("v3-node-root")).toHaveClass("is-dimmed");
-    expect(screen.getByTestId("v3-tree-transform").getAttribute("transform")).toContain("scale(2.8)");
+    expect(screen.getByTestId("v3-tree-transform").getAttribute("transform")).toContain("scale(3.6)");
   });
 
   it("selects nodes and provides fit, zoom, family and selected-dice navigation", () => {

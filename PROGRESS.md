@@ -1,14 +1,12 @@
-# Progress: DiceTree Control graph dashboard redesign and mobile-safe motion
+# Progress: DiceTree production platform expansion and in-game tree UX
 
-- Status: completed
-- Milestone: 6/6 (100%)
-- Updated: 2026-09-04T03:52:22
-- Current work: PR #23 merged, GitHub Pages validation and deployment passed, and the live mobile 6x graph surface was verified dark with no runtime console errors.
+- Status: active
+- Milestone: 4/12 (33%)
+- Updated: 2026-09-06T04:15:52
+- Current work: Mobile tree interaction regressions fixed; compact mobile overlays, shared-state focus, auth-aware online fallback, and consent-gated 25-account community aggregation implemented. Worker SQLite tests 15/15 and Worker typecheck pass.
 
 ## Log
-- 2026-09-04T03:15:28 | 1/6 | Dribbble reference and attached video analyzed; DiceTree shell, graph, mobile gesture safeguards, and live data surfaces mapped.
-- 2026-09-04T03:25:06 | 2/6 | Implemented the Control Graph design system, live tree analysis dock, dark observatory graph surface, unified application theming, and motion with reduced-motion/mobile fallbacks.
-- 2026-09-04T03:43:03 | 3/6 | Desktop and mobile renders inspected across Tree, Simulator, Compare, Account, and Purchase Value; corrected overlap, legacy bright cards, and immediate-scroll regression.
-- 2026-09-04T03:43:03 | 4/6 | Verification passed: 243 unit tests, production build, and 45 Playwright scenarios passed with 7 intentionally skipped. Mobile 6x zoom and dark-canvas regression are covered.
-- 2026-09-04T03:44:10 | 5/6 | Final diff reviewed for accidental changes and mobile rendering hazards. No SVG filters or transformed scroll roots remain on mobile; static IPA extractor tests and diff checks pass.
-- 2026-09-04T03:52:22 | 6/6 | PR #23 merged, GitHub Pages validation and deployment passed, and the live mobile 6x graph surface was verified dark with no runtime console errors.
+- 2026-09-04T15:02:55 | 1/12 | Repository, deployment, compatibility and performance baseline mapped; gesture rendering bottleneck fixed and measured.
+- 2026-09-04T15:30:40 | 2/12 | Cloudflare Worker architecture, D1 schema, Google OIDC session model, Durable Object chat and guarded recommendation/moderation domains implemented; local migration, typecheck and dry-run pass.
+- 2026-09-04T16:13:21 | 3/12 | Phase 2 audit recorded; tree regression subset and 14 Worker SQL/domain tests pass. Build revision, fork, atomic sync, party membership and local What-if workspace implemented; authenticated staging is blocked on Cloudflare/Google configuration.
+- 2026-09-06T04:15:52 | 4/12 | Mobile tree interaction regressions fixed; compact mobile overlays, shared-state focus, auth-aware online fallback, and consent-gated 25-account community aggregation implemented. Worker SQLite tests 15/15 and Worker typecheck pass.

@@ -21,6 +21,7 @@ export interface TreeNodeV3Props {
   recommended: boolean;
   dimmed: boolean;
   canIncrement: boolean;
+  showCost?: boolean;
   nextCost: TreeCost | null;
   heatmap?: TreeHeatmapEntryV3;
   onSelect: (nodeId: string) => void;
@@ -57,6 +58,7 @@ export function TreeNodeV3({
   recommended,
   dimmed,
   canIncrement,
+  showCost = true,
   nextCost,
   heatmap,
   onSelect,
@@ -103,7 +105,7 @@ export function TreeNodeV3({
     onClick={(event) => { event.stopPropagation(); (onPointerSelect ?? onSelect)(node.id); }}
     onKeyDown={activate}
   >
-    {nextCost && (nextCost.gold > 0 || nextCost.stone > 0) && <g
+    {showCost && nextCost && (nextCost.gold > 0 || nextCost.stone > 0) && <g
       className="v41-node-cost"
       data-testid={`v41-cost-${node.id}`}
       transform={`translate(0 ${-radius - 47})`}
@@ -117,7 +119,11 @@ export function TreeNodeV3({
       </text>
     </g>}
     {recommended && <circle className="v3-recommend-orbit" r={radius + 24} aria-hidden="true" />}
-    {selected && <circle className="v3-selection-halo" r={radius + 15} aria-hidden="true" />}
+    {selected && <g className="v57-focus-rings" aria-hidden="true">
+      <circle className="v57-focus-ring is-outer" r={radius + 37} />
+      <circle className="v57-focus-ring is-inner" r={radius + 24} />
+      <circle className="v3-selection-halo" r={radius + 15} />
+    </g>}
     {square
       ? <rect className="v3-node-shell" x={-radius} y={-radius} width={radius * 2} height={radius * 2} rx="25" />
       : <circle className="v3-node-shell" r={radius} />}

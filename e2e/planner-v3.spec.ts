@@ -74,9 +74,24 @@ async function shareState(page: Page) {
   }
 }
 
-async function investTreeNode(page: Page, nodeId: string) {
+async function focusTreeNode(page: Page, nodeId: string) {
+  const isMobileViewport = (page.viewportSize()?.width ?? 1000) <= 760;
+  if (isMobileViewport) {
+    await page.getByRole("button", { name: "검색", exact: true }).click();
+    const tools = page.getByRole("dialog", { name: "트리 도구" });
+    await expect(tools).toBeVisible();
+    await tools.getByRole("textbox", { name: "모바일 트리 검색" }).fill(nodeId);
+    await tools.locator("header button").click();
+  } else {
+    await page.getByRole("textbox", { name: "트리 검색" }).fill(nodeId);
+  }
   const node = page.getByTestId(`v3-node-${nodeId}`);
   await expect(node).toBeVisible();
+  return node;
+}
+
+async function investTreeNode(page: Page, nodeId: string) {
+  const node = await focusTreeNode(page, nodeId);
   await expect(node).toHaveAttribute("data-can-increment", "true");
   const before = Number(await node.getAttribute("data-simulated-rank") ?? "0");
   await node.click();
@@ -86,6 +101,69 @@ async function investTreeNode(page: Page, nodeId: string) {
   await expect(node).toHaveAttribute("data-simulated-rank", String(before + 1));
   await page.getByRole("button", { name: "닫기" }).click();
 }
+
+test("tree pan renders before pointer release and never flashes a white document", async ({ page, context, isMobile }) => {
+  const errors = captureBrowserErrors(page);
+  await page.goto("/dicetree/");
+  const canvas = page.getByTestId("v3-tree-canvas");
+  const transform = page.getByTestId("v3-tree-transform");
+  const box = await canvas.boundingBox();
+  expect(box).not.toBeNull();
+  const before = await transform.getAttribute("transform");
+  const startX = box!.x + box!.width * 0.5;
+  const startY = box!.y + box!.height * 0.45;
+  let mobileCdp: Awaited<ReturnType<typeof context.newCDPSession>> | null = null;
+  if (isMobile) {
+    mobileCdp = await context.newCDPSession(page);
+    await mobileCdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: startX, y: startY, id: 1 }] });
+    await mobileCdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: startX - 120, y: startY - 80, id: 1 }] });
+  } else {
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX - 120, startY - 80, { steps: 4 });
+  }
+  await expect(canvas).toHaveAttribute("data-interacting", "true");
+  await expect.poll(() => transform.getAttribute("transform")).not.toBe(before);
+  await expect(page.locator("html")).not.toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator("body")).not.toHaveCSS("background-color", "rgb(255, 255, 255)");
+  if (isMobile) {
+    await mobileCdp!.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  } else await page.mouse.up();
+  await expect(canvas).toHaveAttribute("data-interacting", "false");
+  expect(errors).toEqual([]);
+});
+
+test("online platform preserves an honest local fallback when no Worker is attached", async ({ page }) => {
+  const errors = captureBrowserErrors(page);
+  await page.goto("/dicetree/");
+  await openShellTab(page,"온라인");
+  await expect(page.getByTestId("v58-online-platform")).toBeVisible();
+  await expect(page.getByText("로컬 모드")).toBeVisible();
+  await expect(page.getByText("가짜 예시는 표시하지 않습니다.")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("personal lab saves what-if scenarios without changing the current account",async({page})=>{
+  const errors=captureBrowserErrors(page);
+  await page.goto("/dicetree/");
+  const original=await readTreeResources(page);
+  await openShellTab(page,"온라인");
+  await page.getByRole("button",{name:"내 연구 · What-if"}).click();
+  const lab=page.getByTestId("personal-lab");
+  await lab.getByLabel("연구 이름").fill("현재 기준");
+  await lab.getByRole("button",{name:"시나리오 저장"}).click();
+  await lab.getByLabel("연구 이름").fill("미래 시나리오");
+  await lab.getByLabel("추가 골드").fill("100000");
+  await lab.getByLabel("주사위 레벨 증가").fill("3");
+  await lab.getByRole("button",{name:"시나리오 저장"}).click();
+  await expect(lab.getByRole("heading",{name:"미래 시나리오"})).toBeVisible();
+  const boxes=lab.getByRole("checkbox",{name:"비교 선택"});
+  await boxes.nth(0).check();await boxes.nth(1).check();
+  await expect(lab.getByTestId("v3-compare-view")).toBeVisible();
+  await openShellTab(page,"다이스 트리");
+  expect(await readTreeResources(page)).toEqual(original);
+  expect(errors).toEqual([]);
+});
 
 test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({ page, browser, isMobile }) => {
   const errors = captureBrowserErrors(page);
@@ -114,7 +192,7 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({ 
   await page.screenshot({ path: `test-results/qa-v3-tree-${isMobile ? "mobile" : "desktop"}.png`, fullPage: false });
 
   await setTreeResources(page, "9999999", "9999");
-  const selectedNode = page.getByTestId("v3-node-1205");
+  const selectedNode = await focusTreeNode(page, "1205");
   await expect(selectedNode).toBeVisible();
   await expect(selectedNode).toHaveAttribute("data-can-increment", "false");
   const nodeTestId = "v3-node-1205";
@@ -136,12 +214,13 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({ 
   const sharedUrl = page.url();
 
   const context = await browser.newContext();
+  await context.addInitScript(() => window.localStorage.setItem("dicetree:v55:creator-welcome-seen", "1"));
   const shared = await context.newPage();
   const sharedErrors = captureBrowserErrors(shared);
   await shared.goto(sharedUrl);
   await expect.poll(async () => (await readTreeResources(shared)).gold).toBe(sharedGold);
   await expect.poll(async () => (await readTreeResources(shared)).core).toBe(sharedCore);
-  await expect(shared.getByTestId(nodeTestId!)).toHaveAttribute("data-simulated-rank", simulatedRank!);
+  await expect(await focusTreeNode(shared, "1205")).toHaveAttribute("data-simulated-rank", simulatedRank!);
   expect(errors).toEqual([]);
   expect(sharedErrors).toEqual([]);
   await context.close();
@@ -203,7 +282,7 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   await expect(nature).toHaveAttribute("data-level", "2");
   await page.screenshot({ path: `test-results/qa-v46-tree-core-${isMobile ? "mobile" : "desktop"}.png`, fullPage: false });
 
-  await page.getByTestId("v3-node-1005").click();
+  await (await focusTreeNode(page, "1005")).click();
   await page.getByRole("button", { name: "가상 랭크 내리기" }).click();
   await expect(nature).toHaveAttribute("data-level", "1");
   expect(errors).toEqual([]);
@@ -218,13 +297,13 @@ test("V4.8.1 starts with base dice unlocked, buys the next nodes and deducts the
   await expect(page.getByTestId("v3-node-1001")).toHaveAttribute("data-can-increment", "false");
 
   await expect(page.getByTestId("v3-node-1005")).toHaveAttribute("data-can-increment", "true");
-  await page.getByTestId("v3-node-1005").click();
+  await (await focusTreeNode(page, "1005")).click();
   await page.getByRole("button", { name: "이 노드 가상 구매" }).click();
   await expect.poll(async () => (await readTreeResources(page)).core).toBe("5");
   await page.getByRole("button", { name: "닫기" }).click();
 
   await expect(page.getByTestId("v3-node-1205")).toHaveAttribute("data-can-increment", "true");
-  await page.getByTestId("v3-node-1205").click();
+  await (await focusTreeNode(page, "1205")).click();
   await page.getByRole("button", { name: "이 노드 가상 구매" }).click();
   await expect.poll(async () => (await readTreeResources(page)).gold).toBe("1000");
   await page.screenshot({ path: `test-results/qa-v481-direct-purchase-${isMobile ? "mobile" : "desktop"}.png`, fullPage: false });
@@ -238,7 +317,7 @@ test("V4.8.1 protects starter ownership and unlocks its child without spending r
 
   await expect(page.getByTestId("v3-node-1001")).toHaveAttribute("data-owned-rank", "1");
   await expect(page.getByTestId("v3-node-1005")).toHaveAttribute("data-can-increment", "true");
-  await page.getByTestId("v3-node-1001").click();
+  await (await focusTreeNode(page, "1001")).click();
   await expect(page.getByRole("button", { name: "보유 랭크 내리기" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "보유 랭크 올리기" })).toBeDisabled();
   await expect.poll(async () => (await readTreeResources(page)).core).toBe("10");
@@ -252,7 +331,7 @@ test("V5 virtual routes work at zero balance and nickname accounts reload outsid
 
   const core = page.getByRole("spinbutton", { name: "남은 다이스 코어" });
   await expect(core).toHaveValue("0");
-  await page.getByTestId("v3-node-1005").click();
+  await (await focusTreeNode(page, "1005")).click();
   const virtualBuy = page.getByRole("button", { name: "이 노드 가상 구매" });
   await expect(virtualBuy).toBeEnabled();
   await virtualBuy.click();
@@ -316,7 +395,7 @@ test("V4 route planner applies prerequisites as one preview and supports cancell
   await page.goto("/dicetree/");
   await page.getByRole("spinbutton", { name: "남은 골드" }).fill("9999999");
   await page.getByRole("spinbutton", { name: "남은 다이스 코어" }).fill("9999");
-  await page.getByTestId("v3-node-1205").click();
+  await (await focusTreeNode(page, "1205")).click();
 
   const route = page.getByTestId("v4-route-plan");
   await expect(route).toBeVisible();

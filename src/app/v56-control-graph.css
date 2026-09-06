@@ -202,8 +202,10 @@ a:focus-visible {
   animation: v56-surface-enter .58s var(--v56-ease) both;
 }
 
-.v41-mode-tree .v3-tree-view { background: var(--v56-void); }
+.v41-mode-tree .v3-tree-view { grid-template-columns: minmax(0, 1fr); background: var(--v56-void); }
 .v41-mode-tree .v3-tree-view.has-detail { grid-template-columns: minmax(0, 1fr) minmax(360px, 400px); }
+.v41-mode-tree .v53-tree-inspector.is-empty { display: none; }
+.v41-mode-tree .v3-tree-toolbar { right: 20px; }
 .v41-mode-tree .v3-tree-main { position: relative; isolation: isolate; }
 .v41-mode-tree .v3-tree-wrap {
   background:
@@ -320,14 +322,23 @@ a:focus-visible {
   font-weight: 820;
 }
 
-.v41-mode-tree .v3-tree-edge { stroke: #31433f; stroke-width: 6; opacity: .46; }
+.v41-mode-tree .v3-tree-edge { stroke: #536b65; stroke-width: 6; opacity: .7; }
 .v41-mode-tree .v3-tree-edge.is-invested { stroke: var(--v56-mint); opacity: .88; }
 .v41-mode-tree .v3-tree-edge.is-simulated { stroke: #c1fff0; opacity: .92; stroke-dasharray: 16 12; }
 .v41-mode-tree .v3-tree-edge.is-recommended { stroke: url(#v3-recommend-edge); stroke-width: 9; opacity: 1; }
+.v41-mode-tree .v3-tree-edge.is-focus-path {
+  stroke: #b8fff0;
+  stroke-width: 10;
+  opacity: .96;
+}
+.v41-mode-tree .v3-tree-edge.is-context-dimmed { opacity: .12; }
 .v41-mode-tree .v3-tree-node .v3-node-shell { fill: #091411; stroke-width: 8; }
+.v41-mode-tree .v3-tree-node .v3-node-shell { filter: none; }
 .v41-mode-tree .v3-tree-node .v3-node-face { fill: color-mix(in srgb, var(--family) 28%, #0a1513); stroke: #ffffff16; }
+.v41-mode-tree .v3-tree-node.is-locked { opacity: .76; }
 .v41-mode-tree .v3-tree-node.is-locked .v3-node-shell { fill: #0b1211; stroke: #34413f; }
-.v41-mode-tree .v3-tree-node.is-locked .v3-node-face { fill: #111a18; stroke: #26322f; }
+.v41-mode-tree .v3-tree-node.is-locked .v3-node-face { fill: #17221f; stroke: #465952; }
+.v41-mode-tree .v3-tree-node.is-locked .v42-tree-dice-icon { filter: grayscale(.6) brightness(.8) saturate(.7); opacity: .7; }
 .v41-mode-tree .v3-tree-node.is-selected .v3-selection-halo {
   stroke: var(--v56-mint);
   stroke-width: 7;
@@ -335,8 +346,92 @@ a:focus-visible {
   animation: v56-orbit-lens 2.4s ease-in-out infinite;
 }
 .v41-mode-tree .v3-tree-node.is-selected .v3-node-shell { stroke: var(--v56-mint); }
+.v41-mode-tree .v57-focus-ring { fill: none; transform-box: fill-box; transform-origin: center; }
+.v41-mode-tree .v57-focus-ring.is-inner { stroke: #b8fff0; stroke-width: 3; stroke-dasharray: 12 13; opacity: .78; animation: v57-focus-orbit 6s linear infinite; }
+.v41-mode-tree .v57-focus-ring.is-outer { stroke: #78f3d0; stroke-width: 2; stroke-dasharray: 3 18; opacity: .38; animation: v57-focus-orbit 11s linear reverse infinite; }
 .v41-mode-tree .v3-recommend-orbit { stroke: var(--v56-warm); }
 .v41-mode-tree .v3-rank-chip circle { fill: #07100e; stroke: #c9d4d1; }
+
+/* Gesture LOD: labels and decorative badges are restored as soon as the pointer
+   is released. The graph itself never disappears, so spatial continuity stays intact. */
+.v41-mode-tree .v3-tree-canvas[data-interacting="true"] { cursor: grabbing; }
+.v41-mode-tree .v3-tree-canvas[data-interacting="true"] :is(.v41-node-cost, .v3-rank-chip, .v47-heat-grade) {
+  opacity: 0;
+}
+.v41-mode-tree .v3-tree-canvas[data-interacting="true"] :is(.v3-node-shell, .v3-node-face, .v42-tree-dice-icon, .v3-selection-halo, .v3-recommend-orbit) {
+  transition: none !important;
+}
+.v41-mode-tree .v3-tree-canvas[data-interacting="true"] .v3-tree-edge {
+  shape-rendering: optimizeSpeed;
+}
+
+.v57-tree-view-options {
+  position: absolute;
+  z-index: 13;
+  top: 197px;
+  right: 18px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--v56-line);
+  border-radius: 12px;
+  background: #07100fe8;
+  box-shadow: 0 14px 42px #0007;
+  backdrop-filter: blur(16px);
+}
+.v57-tree-view-options button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #71817c;
+  padding: 0 10px;
+  font-size: 8px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.v57-tree-view-options button.is-active { background: #78f3d014; color: var(--v56-mint); }
+
+.v57-tree-minimap {
+  position: absolute;
+  z-index: 11;
+  right: 18px;
+  bottom: 164px;
+  width: 166px;
+  height: 112px;
+  overflow: hidden;
+  border: 1px solid #78f3d02e;
+  border-radius: 14px;
+  background: #06100ee8;
+  padding: 0;
+  box-shadow: 0 18px 50px #0009, inset 0 1px 0 #ffffff0a;
+  cursor: crosshair;
+  backdrop-filter: blur(16px);
+}
+.v57-tree-minimap svg { display: block; width: 100%; height: 100%; }
+.v57-tree-minimap line { stroke: #40534e; stroke-width: 8; opacity: .45; }
+.v57-tree-minimap circle { fill: #60706c; opacity: .72; }
+.v57-tree-minimap circle.family-nature { fill: #52b879; }
+.v57-tree-minimap circle.family-chaos { fill: #dc667d; }
+.v57-tree-minimap circle.family-order { fill: #826ee0; }
+.v57-tree-minimap circle.family-engineering { fill: #a18d64; }
+.v57-tree-minimap circle.family-magic { fill: #5793e5; }
+.v57-tree-minimap circle.is-selected { fill: #d7fff6; opacity: 1; }
+.v57-minimap-window { fill: #78f3d012; stroke: #b8fff0; stroke-width: 22; vector-effect: non-scaling-stroke; }
+.v57-tree-minimap > span {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  border-radius: 999px;
+  background: #020706d9;
+  color: #b8fff0;
+  padding: 4px 6px;
+  font: 800 7px "SFMono-Regular", ui-monospace, monospace;
+}
+
+.v57-mobile-view-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.v57-mobile-view-toggles button { min-height: 44px; border: 1px solid #ffffff14; border-radius: 12px; background: #0d1816; color: #81908c; font-size: 10px; font-weight: 800; }
+.v57-mobile-view-toggles button.is-active { border-color: #78f3d052; background: #78f3d012; color: var(--v56-mint); }
 
 .v41-mode-tree :is(.v3-tree-family-jumps, .v3-tree-zoom-controls, .v47-heat-legend) {
   border: 1px solid var(--v56-line);
@@ -682,6 +777,8 @@ a:focus-visible {
 }
 
 @media (max-width: 980px) {
+  .v57-tree-minimap,
+  .v57-tree-view-options { display: none; }
   html,
   body,
   #root,
@@ -742,15 +839,7 @@ a:focus-visible {
     backface-visibility: visible !important;
   }
   .v56-tree-context {
-    top: 10px;
-    right: 10px;
-    left: 10px;
-    min-width: 0;
-    padding: 9px 10px;
-    border-radius: 13px;
-    background: #07100ff0;
-    box-shadow: 0 14px 44px #0008;
-    backdrop-filter: none;
+    display: none;
   }
   .v56-tree-context > div { min-width: 0; flex: 1; }
   .v56-tree-context strong { font-size: 12px; }
@@ -759,18 +848,7 @@ a:focus-visible {
   .v56-tree-context dl > div:first-child { display: none; }
   .v56-tree-context dl { grid-template-columns: repeat(2, 1fr); }
   .v56-analysis-dock {
-    right: 10px;
-    bottom: calc(var(--v53-mobile-nav-height) + var(--v53-safe-bottom) + 72px);
-    left: 10px;
-    grid-template-columns: 30px minmax(0, 1fr) auto;
-    gap: 9px;
-    min-height: 62px;
-    padding: 8px;
-    border-radius: 15px;
-    background: #07100ff2;
-    box-shadow: 0 18px 60px #000c;
-    backdrop-filter: none;
-    animation: v56-dock-enter .35s ease both;
+    display: none;
   }
   .v56-dock-signal { width: 30px; height: 30px; }
   .v56-dock-signal i:nth-child(2) { width: 18px; height: 18px; }
@@ -788,7 +866,7 @@ a:focus-visible {
     backdrop-filter: none;
   }
   .v41-mode-tree .v3-recommendation-strip {
-    top: 76px;
+    top: 10px;
     left: 10px;
     right: 10px;
     overflow: hidden;
@@ -806,8 +884,13 @@ a:focus-visible {
   .v41-mode-tree .v3-recommendation-list > article,
   .v41-mode-tree .v3-recommendation-title { backdrop-filter: none; }
   .v41-mode-tree .v53-tree-gesture-hint {
-    bottom: calc(var(--v53-mobile-nav-height) + var(--v53-safe-bottom) + 142px);
+    right: 10px;
+    bottom: calc(var(--v53-mobile-nav-height) + var(--v53-safe-bottom) + 70px);
+    left: auto;
+    max-width: min(260px, calc(100vw - 20px));
+    padding: 8px 10px;
   }
+  .v41-mode-tree .v53-tree-gesture-hint small { display: none; }
   .v53-mobile-nav {
     border: 1px solid #ffffff13;
     background: #07100ff5;
@@ -818,6 +901,12 @@ a:focus-visible {
   .v53-mobile-nav button.is-active { color: var(--v56-mint); background: #78f3d00d; }
   .v53-action-sheet,
   .v48-command-palette { backdrop-filter: none; }
+}
+
+@keyframes v57-focus-orbit { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .v41-mode-tree .v57-focus-ring { animation: none !important; }
 }
 
 @media (max-width: 620px) {
