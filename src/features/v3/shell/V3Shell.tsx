@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { DiceFamilyV3 } from "../../../game-data/types";
 import { gameDataV3 } from "../../../game-data/load";
@@ -40,10 +40,12 @@ import type { ScreenshotAccountDraftV52 } from "../../../account/screenshotImpor
 import { hasUnreadUpdateV55 } from "../../../updates/updateWatchV55";
 import { OFFICIAL_PATCH_HISTORY_V47 } from "../../../updates/patchHistory";
 
-type Tab = "account" | "tree" | "simulator" | "decks" | "tier" | "compare" | "shop" | "updates";
+const OnlinePlatformView = lazy(() => import("../community/OnlinePlatformView").then((module) => ({ default:module.OnlinePlatformView })));
+
+type Tab = "account" | "tree" | "simulator" | "decks" | "community" | "tier" | "compare" | "shop" | "updates";
 type TreeViewCommandV53 = { id: number; type: "zoomIn" | "zoomOut" | "fit" | "selected" };
 
-const PRIMARY_TABS: Tab[] = ["account", "tree", "simulator", "decks"];
+const PRIMARY_TABS: Tab[] = ["account", "tree", "simulator", "decks", "community"];
 const TOOL_TABS: Tab[] = ["tier", "compare", "shop", "updates"];
 
 function tabLabel(tab: Tab, locale: "ko" | "en") {
@@ -52,6 +54,7 @@ function tabLabel(tab: Tab, locale: "ko" | "en") {
     tree: { ko: "다이스 트리", en: "Dice Tree" },
     simulator: { ko: "시뮬레이터", en: "Simulator" },
     decks: { ko: "덱 연구소", en: "Deck Lab" },
+    community: { ko: "온라인", en: "Online" },
     tier: { ko: "티어 메이커", en: "Tier Maker" },
     compare: { ko: "비교", en: "Compare" },
     shop: { ko: "구매 효율", en: "Purchase Value" },
@@ -153,6 +156,8 @@ export function V3Shell() {
   const [familyFilter, setFamilyFilter] = useState<DiceFamilyV3 | "all">("all");
   const [query, setQuery] = useState("");
   const [heatmapMode, setHeatmapMode] = useState<TreeHeatmapModeV3>("none");
+  const [showTreeCosts, setShowTreeCosts] = useState(true);
+  const [focusPrerequisites, setFocusPrerequisites] = useState(true);
   const [shareNotice, setShareNotice] = useState<string>();
   const [deckGoal, setDeckGoal] = useState<"dealer" | "support" | "balanced">(() => accountSeed.decks.find((deck) => deck.id === accountSeed.primaryDeckId)?.role ?? "balanced");
   const [spendProfile, setSpendProfile] = useState<"free" | "light" | "invested">(accountSeed.preferences.spendProfile);
@@ -295,9 +300,9 @@ export function V3Shell() {
   );
   const commandResults = useMemo(() => {
     const normalized = normalizeTreeSearchText(commandQuery.trim());
-    const tabs: Array<{ id: string; kind: "tab"; tab: Tab; label: string }> = (["account", "tree", "simulator", "decks", "tier", "compare", "shop", "updates"] as Tab[]).map((target) => ({
+    const tabs: Array<{ id: string; kind: "tab"; tab: Tab; label: string }> = (["account", "tree", "simulator", "decks", "community", "tier", "compare", "shop", "updates"] as Tab[]).map((target) => ({
       id: `tab:${target}`, kind: "tab", tab: target,
-      label: target === "account" ? (locale === "ko" ? "내 계정 인텔리전스" : "Account Intelligence") : target === "tree" ? (locale === "ko" ? "다이스 트리" : "Dice Tree") : target === "simulator" ? (locale === "ko" ? "시뮬레이터" : "Simulator") : target === "decks" ? (locale === "ko" ? "덱 연구소" : "Deck Lab") : target === "tier" ? (locale === "ko" ? "티어 메이커" : "Tier Maker") : target === "compare" ? (locale === "ko" ? "비교" : "Compare") : target === "shop" ? (locale === "ko" ? "구매 효율" : "Purchase Value") : (locale === "ko" ? "업데이트" : "Updates"),
+      label: target === "account" ? (locale === "ko" ? "내 계정 인텔리전스" : "Account Intelligence") : target === "tree" ? (locale === "ko" ? "다이스 트리" : "Dice Tree") : target === "simulator" ? (locale === "ko" ? "시뮬레이터" : "Simulator") : target === "decks" ? (locale === "ko" ? "덱 연구소" : "Deck Lab") : target === "community" ? (locale === "ko" ? "온라인 플랫폼" : "Online Platform") : target === "tier" ? (locale === "ko" ? "티어 메이커" : "Tier Maker") : target === "compare" ? (locale === "ko" ? "비교" : "Compare") : target === "shop" ? (locale === "ko" ? "구매 효율" : "Purchase Value") : (locale === "ko" ? "업데이트" : "Updates"),
     }));
     const dice = selectableDice.map((entry) => ({ id: `dice:${entry.id}`, kind: "dice" as const, diceId: entry.id, label: entry.nameKey ? gameDataV3.localization[locale][entry.nameKey] ?? entry.id : entry.id }));
     const nodes = gameDataV3.tree.filter((node) => node.kind !== "connector").map((node) => ({ id: `node:${node.id}`, kind: "node" as const, nodeId: node.id, label: node.nameKey ? gameDataV3.localization[locale][node.nameKey] ?? node.id : node.id, effect: node.descriptionKey ? gameDataV3.localization[locale][node.descriptionKey] ?? "" : "", searchText: treeNodeSearchTextV3(gameDataV3, node, locale) }));
@@ -576,6 +581,10 @@ export function V3Shell() {
           locale={locale}
           onSelectNode={setSelectedNodeId}
         />
+        <div className="v57-tree-view-options" aria-label={locale === "ko" ? "트리 보기 옵션" : "Tree view options"}>
+          <button type="button" className={focusPrerequisites ? "is-active" : ""} aria-pressed={focusPrerequisites} onClick={() => setFocusPrerequisites((value) => !value)}>{locale === "ko" ? "선행 경로" : "Prerequisites"}</button>
+          <button type="button" className={showTreeCosts ? "is-active" : ""} aria-pressed={showTreeCosts} onClick={() => setShowTreeCosts((value) => !value)}>{locale === "ko" ? "비용" : "Costs"}</button>
+        </div>
         <TreeCanvasV3
           data={gameDataV3}
           nodes={gameDataV3.tree}
@@ -586,6 +595,8 @@ export function V3Shell() {
           recommendedIds={recommendedIds}
           heatmap={heatmap}
           heatmapMode={heatmapMode}
+          showCosts={showTreeCosts}
+          focusPrerequisites={focusPrerequisites}
           familyFilter={familyFilter}
           query={query}
           locale={locale}
@@ -645,7 +656,7 @@ export function V3Shell() {
         <button type="button" onClick={() => setTreeViewCommand({ id: Date.now(), type: "fit" })}>Fit</button>
         <button type="button" aria-label={locale === "ko" ? "확대" : "Zoom in"} onClick={() => setTreeViewCommand({ id: Date.now(), type: "zoomIn" })}>+</button>
       </nav>}
-      {treeToolsOpen && <div className="v53-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setTreeToolsOpen(false); }}><section className="v53-action-sheet v53-tree-tools" role="dialog" aria-modal="true" aria-label={locale === "ko" ? "트리 도구" : "Tree tools"}><div className="v53-sheet-handle" /><header><div><small>{locale === "ko" ? "트리 도구" : "TREE TOOLS"}</small><h2>{locale === "ko" ? "찾고 분석하고 이동하세요" : "Find, analyze, and navigate"}</h2></div><button type="button" onClick={() => setTreeToolsOpen(false)}>×</button></header><input ref={mobileTreeSearchRef} aria-label={locale === "ko" ? "모바일 트리 검색" : "Mobile tree search"} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={locale === "ko" ? "노드 이름 또는 효과 검색" : "Search node name or effect"} /><div className="v53-family-grid"><button type="button" className={familyFilter === "all" ? "is-active" : ""} onClick={() => setFamilyFilter("all")}>{locale === "ko" ? "전체" : "All"}</button>{(["nature", "chaos", "order", "engineering", "magic"] as DiceFamilyV3[]).map((family) => <button key={family} type="button" className={familyFilter === family ? "is-active" : ""} onClick={() => setFamilyFilter(family)}>{FAMILY_NAMES[family][locale]}</button>)}</div><label>{locale === "ko" ? "효율 히트맵" : "Efficiency heatmap"}<select value={heatmapMode} onChange={(event) => setHeatmapMode(event.target.value as TreeHeatmapModeV3)}><option value="none">{locale === "ko" ? "끄기" : "Off"}</option><option value="gold">{locale === "ko" ? "골드 1만당" : "Per 10k Gold"}</option><option value="stone">{locale === "ko" ? "코어 1개당" : "Per Core"}</option><option value="path">{locale === "ko" ? "선행 경로 포함" : "Including path"}</option></select></label><div className="v53-sheet-actions"><button type="button" disabled={!selectedNodeId} onClick={() => { setTreeViewCommand({ id: Date.now(), type: "selected" }); setTreeToolsOpen(false); }}>{locale === "ko" ? "선택 노드로 이동" : "Return to selected"}</button><button className="is-primary" type="button" onClick={() => { setSelectedNodeId(undefined); setGuidedRouteOpen(true); setTreeToolsOpen(false); }}>{locale === "ko" ? "맞춤 전체 루트" : "Guided full route"}</button></div></section></div>}
+      {treeToolsOpen && <div className="v53-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setTreeToolsOpen(false); }}><section className="v53-action-sheet v53-tree-tools" role="dialog" aria-modal="true" aria-label={locale === "ko" ? "트리 도구" : "Tree tools"}><div className="v53-sheet-handle" /><header><div><small>{locale === "ko" ? "트리 도구" : "TREE TOOLS"}</small><h2>{locale === "ko" ? "찾고 분석하고 이동하세요" : "Find, analyze, and navigate"}</h2></div><button type="button" onClick={() => setTreeToolsOpen(false)}>×</button></header><input ref={mobileTreeSearchRef} aria-label={locale === "ko" ? "모바일 트리 검색" : "Mobile tree search"} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={locale === "ko" ? "노드 이름 또는 효과 검색" : "Search node name or effect"} /><div className="v53-family-grid"><button type="button" className={familyFilter === "all" ? "is-active" : ""} onClick={() => setFamilyFilter("all")}>{locale === "ko" ? "전체" : "All"}</button>{(["nature", "chaos", "order", "engineering", "magic"] as DiceFamilyV3[]).map((family) => <button key={family} type="button" className={familyFilter === family ? "is-active" : ""} onClick={() => setFamilyFilter(family)}>{FAMILY_NAMES[family][locale]}</button>)}</div><label>{locale === "ko" ? "효율 히트맵" : "Efficiency heatmap"}<select value={heatmapMode} onChange={(event) => setHeatmapMode(event.target.value as TreeHeatmapModeV3)}><option value="none">{locale === "ko" ? "끄기" : "Off"}</option><option value="gold">{locale === "ko" ? "골드 1만당" : "Per 10k Gold"}</option><option value="stone">{locale === "ko" ? "코어 1개당" : "Per Core"}</option><option value="path">{locale === "ko" ? "선행 경로 포함" : "Including path"}</option></select></label><div className="v57-mobile-view-toggles"><button type="button" className={focusPrerequisites ? "is-active" : ""} onClick={() => setFocusPrerequisites((value) => !value)}>{locale === "ko" ? "선행 경로 표시" : "Show prerequisites"}</button><button type="button" className={showTreeCosts ? "is-active" : ""} onClick={() => setShowTreeCosts((value) => !value)}>{locale === "ko" ? "노드 비용 표시" : "Show node costs"}</button></div><div className="v53-sheet-actions"><button type="button" disabled={!selectedNodeId} onClick={() => { setTreeViewCommand({ id: Date.now(), type: "selected" }); setTreeToolsOpen(false); }}>{locale === "ko" ? "선택 노드로 이동" : "Return to selected"}</button><button className="is-primary" type="button" onClick={() => { setSelectedNodeId(undefined); setGuidedRouteOpen(true); setTreeToolsOpen(false); }}>{locale === "ko" ? "맞춤 전체 루트" : "Guided full route"}</button></div></section></div>}
     </main>}
 
     {tab === "simulator" && <SimulatorView data={gameDataV3} state={state} locale={locale} onScenarioChange={(patch) => dispatch({ type: "setScenario", scenario: patch })} />}
@@ -671,12 +682,13 @@ export function V3Shell() {
 
     {tab === "shop" && <PurchaseEfficiencyView locale={locale} />}
     {tab === "updates" && <UpdateCenterView data={gameDataV3} locale={locale} activeDeckIds={activeDeckIds} state={state} onUpdateSeen={() => setUpdateUnread(false)} />}
+    {tab === "community" && <Suspense fallback={<main className="v58-online"><p className="v58-empty">{locale === "ko" ? "온라인 플랫폼을 불러오는 중입니다." : "Loading the online platform."}</p></main>}><OnlinePlatformView locale={locale} state={state} deckIds={activeDeckIds} onRestore={(restored)=>dispatch({type:"load",state:restored})}/></Suspense>}
 
     {mobileLayout && <nav className="v53-mobile-nav" aria-label={locale === "ko" ? "모바일 주요 화면" : "Mobile primary views"}>
       {(["account", "tree", "simulator"] as Tab[]).map((item) => <button key={item} type="button" className={tab === item ? "is-active" : ""} onClick={() => openTab(item)}><span aria-hidden="true">{item === "account" ? "●" : item === "tree" ? "◇" : "▶"}</span>{tabLabel(item, locale)}</button>)}
-      <button type="button" className={`${TOOL_TABS.includes(tab) || tab === "decks" ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`} aria-expanded={moreOpen} onClick={() => setMoreOpen(true)}><span aria-hidden="true">•••</span>{locale === "ko" ? "더보기" : "More"}{updateUnread && <i aria-hidden="true" />}</button>
+      <button type="button" className={`${TOOL_TABS.includes(tab) || tab === "decks" || tab === "community" ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`} aria-expanded={moreOpen} onClick={() => setMoreOpen(true)}><span aria-hidden="true">•••</span>{locale === "ko" ? "더보기" : "More"}{updateUnread && <i aria-hidden="true" />}</button>
     </nav>}
-      {mobileLayout && moreOpen && <div className="v53-sheet-backdrop v53-more-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMoreOpen(false); }}><section className="v53-action-sheet v53-more-sheet" role="dialog" aria-modal="true" aria-label={locale === "ko" ? "더보기" : "More"}><div className="v53-sheet-handle" /><header><div><small>{locale === "ko" ? "더보기" : "MORE"}</small><h2>{locale === "ko" ? "분석 도구" : "Analysis tools"}</h2></div><button type="button" onClick={() => setMoreOpen(false)}>×</button></header><div className="v53-more-grid">{(["decks", ...TOOL_TABS] as Tab[]).map((item) => <button key={item} type="button" className={`${tab === item ? "is-active" : ""} ${item === "updates" && updateUnread ? "has-update" : ""}`} onClick={() => openTab(item)}><strong>{tabLabel(item, locale)}{item === "updates" && updateUnread && <i aria-hidden="true" />}</strong><small>{item === "decks" ? (locale === "ko" ? "덱 진단과 추천" : "Deck diagnosis") : item === "tier" ? (locale === "ko" ? "나만의 등급표" : "Custom rankings") : item === "compare" ? (locale === "ko" ? "두 설정 비교" : "Compare builds") : item === "shop" ? (locale === "ko" ? "예산 최적화" : "Budget optimizer") : (locale === "ko" ? "패치와 메타" : "Patches and meta")}</small></button>)}</div><footer><button type="button" onClick={() => { setMoreOpen(false); setContinueOpen(true); }}>{locale === "ko" ? "다른 기기에서 계속" : "Continue on another device"}</button><button type="button" onClick={() => { setMoreOpen(false); setDiagnosticsOpen(true); }}>{locale === "ko" ? "사이트 성능 진단" : "Performance diagnostics"}</button><button type="button" className="v54-more-creator" onClick={() => { setMoreOpen(false); openAbout(); }}>{locale === "ko" ? "제작자 모님" : "Created by Monim"}</button></footer></section></div>}
+      {mobileLayout && moreOpen && <div className="v53-sheet-backdrop v53-more-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMoreOpen(false); }}><section className="v53-action-sheet v53-more-sheet" role="dialog" aria-modal="true" aria-label={locale === "ko" ? "더보기" : "More"}><div className="v53-sheet-handle" /><header><div><small>{locale === "ko" ? "더보기" : "MORE"}</small><h2>{locale === "ko" ? "분석 도구" : "Analysis tools"}</h2></div><button type="button" onClick={() => setMoreOpen(false)}>×</button></header><div className="v53-more-grid">{(["decks", "community", ...TOOL_TABS] as Tab[]).map((item) => <button key={item} type="button" className={`${tab === item ? "is-active" : ""} ${item === "updates" && updateUnread ? "has-update" : ""}`} onClick={() => openTab(item)}><strong>{tabLabel(item, locale)}{item === "updates" && updateUnread && <i aria-hidden="true" />}</strong><small>{item === "decks" ? (locale === "ko" ? "덱 진단과 추천" : "Deck diagnosis") : item === "community" ? (locale === "ko" ? "빌드·연구방·파티" : "Builds, rooms, parties") : item === "tier" ? (locale === "ko" ? "나만의 등급표" : "Custom rankings") : item === "compare" ? (locale === "ko" ? "두 설정 비교" : "Compare builds") : item === "shop" ? (locale === "ko" ? "예산 최적화" : "Budget optimizer") : (locale === "ko" ? "패치와 메타" : "Patches and meta")}</small></button>)}</div><footer><button type="button" onClick={() => { setMoreOpen(false); setContinueOpen(true); }}>{locale === "ko" ? "다른 기기에서 계속" : "Continue on another device"}</button><button type="button" onClick={() => { setMoreOpen(false); setDiagnosticsOpen(true); }}>{locale === "ko" ? "사이트 성능 진단" : "Performance diagnostics"}</button><button type="button" className="v54-more-creator" onClick={() => { setMoreOpen(false); openAbout(); }}>{locale === "ko" ? "제작자 모님" : "Created by Monim"}</button></footer></section></div>}
       {diagnosticsOpen && <PerformanceDiagnosticsV55 locale={locale} onClose={() => setDiagnosticsOpen(false)} />}
   </div>;
 }

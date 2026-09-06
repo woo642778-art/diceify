@@ -10,18 +10,26 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --maxWorkers=2",
     "test:watch": "vitest",
+    "test:worker": "vitest run --config worker/vitest.config.ts",
     "test:e2e": "playwright test",
-    "lint:data": "vitest run src/tree-data/validateDataset.test.ts"
+    "lint:data": "vitest run src/tree-data/validateDataset.test.ts",
+    "typecheck:worker": "tsc -p worker/tsconfig.json --noEmit",
+    "build:worker": "wrangler deploy --dry-run",
+    "db:local:migrate": "wrangler d1 migrations apply dicetree-staging --local"
   },
   "dependencies": {
+    "hono": "^4.13.7",
+    "jose": "^6.2.11",
     "qrcode.react": "^4.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260904.1",
     "@playwright/test": "1.62.1",
     "@testing-library/jest-dom": "7.0.0",
     "@testing-library/react": "16.3.2",
@@ -32,6 +40,7 @@
     "jsdom": "27.0.1",
     "typescript": "7.0.2",
     "vite": "8.1.5",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "wrangler": "^4.129.0"
   }
 }

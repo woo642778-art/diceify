@@ -1,0 +1,14 @@
+import {useEffect,useState} from "react";
+import type {PlannerStateV3} from "../../../planner-v3/types";
+import {platformGet,platformMutate,PlatformApiError,type PlatformMe} from "../../../platform/api";
+import {validateImportedPlanner} from "../../../platform/plannerImport";
+
+type Snapshot={state:unknown;state_version:number;updated_at:string};
+export function CloudSyncPanel({locale,me,state,onRestore}:{locale:"ko"|"en";me:PlatformMe;state:PlannerStateV3;onRestore:(state:PlannerStateV3)=>void}){
+  const ko=locale==="ko";const[snapshot,setSnapshot]=useState<Snapshot|null>(null);const[loaded,setLoaded]=useState(false);const[notice,setNotice]=useState("");const[busy,setBusy]=useState(false);
+  const refresh=()=>platformGet<{snapshot:Snapshot|null}>("/api/v1/sync").then((result)=>{setSnapshot(result.snapshot);setLoaded(true);});
+  useEffect(()=>{void refresh().catch(()=>setNotice(ko?"클라우드 상태를 가져오지 못했습니다.":"Could not load cloud state."));},[me.user.id]);
+  const save=async()=>{if(!loaded)return;setBusy(true);try{await platformMutate("/api/v1/sync",{state,schemaVersion:3,expectedVersion:snapshot?.state_version??0,requestId:crypto.randomUUID()},me.csrf,"PUT");await refresh();setNotice(ko?"새 클라우드 버전을 저장했습니다.":"Saved a new cloud version.");}catch(error){if(error instanceof PlatformApiError&&error.status===409){await refresh();setNotice(ko?"다른 기기에서 변경되었습니다. 아래 최신 버전을 확인한 후 다시 선택하세요.":"Another device changed the state. Review the latest version below.");}else setNotice(ko?"저장 실패. 이 기기의 데이터는 유지됩니다.":"Save failed. Local data is preserved.");}finally{setBusy(false);}};
+  const restore=()=>{if(!snapshot)return;const parsed=validateImportedPlanner(snapshot.state);if(!parsed.ok){setNotice(ko?"호환되지 않는 클라우드 데이터입니다.":"Cloud state is incompatible.");return;}try{localStorage.setItem(`dicetree.cloud-backup.${me.user.id}`,JSON.stringify({state,createdAt:new Date().toISOString()}));}catch{setNotice(ko?"원본 백업 공간이 부족해 복원을 중단했습니다.":"Restore stopped because the original could not be backed up.");return;}onRestore(parsed.state);setNotice(ko?"이 기기 원본을 보관하고 클라우드 버전을 불러왔습니다.":"Backed up this device and restored the cloud version.");};
+  return <section className="v58-sync"><h3>{ko?"기기 간 동기화":"Device sync"}</h3><div><article><b>{ko?"이 기기의 현재 설정":"This device"}</b><p>{state.inventory.gold.toLocaleString()} G · {state.inventory.stone.toLocaleString()} C</p><button disabled={!loaded||busy} onClick={()=>void save()}>{ko?"이 기기를 새 버전으로 저장":"Save device as new version"}</button></article><article><b>{ko?"클라우드":"Cloud"}</b><p>{snapshot?`v${snapshot.state_version} · ${new Date(snapshot.updated_at).toLocaleString()}`:loaded?(ko?"저장된 버전 없음":"No saved version"):(ko?"불러오는 중":"Loading")}</p><button disabled={!snapshot||busy} onClick={restore}>{ko?"원본 보관 후 클라우드 사용":"Back up and use cloud"}</button></article></div>{notice&&<p role="status">{notice}</p>}</section>;
+}

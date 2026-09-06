@@ -17,6 +17,8 @@ export interface TreeCanvasV3Props {
   recommendedIds?: ReadonlySet<string>;
   heatmap?: ReadonlyMap<string, TreeHeatmapEntryV3>;
   heatmapMode?: TreeHeatmapModeV3;
+  showCosts?: boolean;
+  focusPrerequisites?: boolean;
   familyFilter?: DiceFamilyV3 | "all";
   query?: string;
   locale: "ko" | "en";
@@ -33,7 +35,8 @@ const FAMILY_LABEL: Record<DiceFamilyV3, { ko: string; en: string }> = {
 };
 
 const FAMILY_ORDER: DiceFamilyV3[] = ["nature", "chaos", "order", "engineering", "magic"];
-const INITIAL_VIEW = { x: 0, y: 0, scale: 0.92 };
+const INITIAL_VIEW = { x: 0, y: 0, scale: 3.6 };
+const FIT_VIEW = { x: 0, y: 0, scale: 0.92 };
 const TREE_BASE_IMAGE_URL = `${import.meta.env.BASE_URL}tree-assets/dice-tree-base.webp`;
 
 const FAMILY_COUNTER_POSITION: Record<DiceFamilyV3, { x: number; y: number }> = {
@@ -143,6 +146,21 @@ export function canIncrementNodeV3(
 ) {
   const current = rankFor(node.id, ownedRanks, simulatedRanks);
   return current < node.maxRank && prerequisitesSatisfiedV3(node, ownedRanks, simulatedRanks);
+}
+
+export function prerequisiteClosureIdsV57(nodes: readonly DiceTreeNodeV3[], targetId?: string) {
+  if (!targetId) return new Set<string>();
+  const byId = new Map(nodes.map((node) => [node.id, node]));
+  const result = new Set<string>();
+  const visit = (nodeId: string) => {
+    if (result.has(nodeId)) return;
+    const node = byId.get(nodeId);
+    if (!node) return;
+    result.add(nodeId);
+    node.prerequisites.forEach((entry) => visit(entry.nodeId));
+  };
+  visit(targetId);
+  return result;
 }
 
 function boundsOf(nodes: readonly DiceTreeNodeV3[]) {
@@ -267,14 +285,39 @@ export function TreeCanvasV3({
   recommendedIds = new Set<string>(),
   heatmap = new Map<string, TreeHeatmapEntryV3>(),
   heatmapMode = "none",
+  showCosts = true,
+  focusPrerequisites = true,
   familyFilter = "all",
   query = "",
   locale,
   onSelect,
   command,
 }: TreeCanvasV3Props) {
-  const { view, setView, resetView, consumePointerClick, bind } = usePanZoom(INITIAL_VIEW);
   const canvasRef = useRef<SVGSVGElement>(null);
+  const transformRef = useRef<SVGGElement>(null);
+  const minimapViewportRef = useRef<SVGRectElement>(null);
+  const minimapWorldRef = useRef({ x: -100, y: -100, width: 200, height: 200 });
+  const updateMinimapViewport = useCallback((next: { x: number; y: number; scale: number }) => {
+    const viewport = minimapViewportRef.current;
+    if (!viewport) return;
+    const world = minimapWorldRef.current;
+    viewport.setAttribute("x", String((world.x - next.x) / next.scale));
+    viewport.setAttribute("y", String((world.y - next.y) / next.scale));
+    viewport.setAttribute("width", String(world.width / next.scale));
+    viewport.setAttribute("height", String(world.height / next.scale));
+  }, []);
+  const renderTransientView = useCallback((next: { x: number; y: number; scale: number }) => {
+    transformRef.current?.setAttribute("transform", `translate(${next.x} ${next.y}) scale(${next.scale})`);
+    canvasRef.current?.setAttribute("data-scale", next.scale.toFixed(2));
+    updateMinimapViewport(next);
+  }, [updateMinimapViewport]);
+  const markInteraction = useCallback((active: boolean) => {
+    if (canvasRef.current) canvasRef.current.dataset.interacting = String(active);
+  }, []);
+  const { view, setView, consumePointerClick, bind } = usePanZoom(INITIAL_VIEW, {
+    onTransientView: renderTransientView,
+    onInteractionChange: markInteraction,
+  });
   const [gestureHintVisible, setGestureHintVisible] = useState(() => {
     try { return window.localStorage.getItem("dicetree:v53:tree-gesture-seen") !== "1"; }
     catch { return true; }
@@ -289,6 +332,12 @@ export function TreeCanvasV3({
   const bounds = useMemo(() => boundsOf(nodes), [nodes]);
   const margin = Math.max(260, Math.max(bounds.width, bounds.height) * 0.05);
   const viewBox = `${bounds.minX - margin} ${bounds.minY - margin} ${bounds.width + margin * 2} ${bounds.height + margin * 2}`;
+  minimapWorldRef.current = {
+    x: bounds.minX - margin,
+    y: bounds.minY - margin,
+    width: bounds.width + margin * 2,
+    height: bounds.height + margin * 2,
+  };
   const center = useMemo(() => ({
     x: (bounds.minX + bounds.maxX) / 2,
     y: (bounds.minY + bounds.maxY) / 2,
@@ -298,6 +347,12 @@ export function TreeCanvasV3({
     () => familyInvestmentLevelsV3(nodes, ownedRanks, simulatedRanks),
     [nodes, ownedRanks, simulatedRanks],
   );
+  const prerequisiteFocusIds = useMemo(
+    () => focusPrerequisites ? prerequisiteClosureIdsV57(nodes, selectedNodeId) : new Set<string>(),
+    [focusPrerequisites, nodes, selectedNodeId],
+  );
+
+  useEffect(() => updateMinimapViewport(view), [updateMinimapViewport, view]);
 
   const matchingNodes = useMemo(() => {
     const matches: DiceTreeNodeV3[] = [];
@@ -315,7 +370,7 @@ export function TreeCanvasV3({
   const visibleIds = useMemo(() => new Set(matchingNodes.map((node) => node.id)), [matchingNodes]);
   const renderIds = useMemo(() => {
     if (!mobileSafeRendering || view.scale < 1.15) return new Set(nodes.map((node) => node.id));
-    const keepIds = new Set<string>([...recommendedIds, ...visibleIds]);
+    const keepIds = new Set<string>([...recommendedIds, ...visibleIds, ...prerequisiteFocusIds]);
     if (!normalizedQuery) keepIds.clear();
     if (selectedNodeId) keepIds.add(selectedNodeId);
     return visibleTreeNodeIdsV52(nodes, view, {
@@ -324,7 +379,7 @@ export function TreeCanvasV3({
       minY: bounds.minY - margin,
       maxY: bounds.maxY + margin,
     }, keepIds);
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, margin, mobileSafeRendering, nodes, normalizedQuery, recommendedIds, selectedNodeId, view, visibleIds]);
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, margin, mobileSafeRendering, nodes, normalizedQuery, prerequisiteFocusIds, recommendedIds, selectedNodeId, view, visibleIds]);
 
   const jumpToNodes = useCallback((targets: readonly DiceTreeNodeV3[], minimumScale = 1.15) => {
     if (!targets.length) return;
@@ -356,7 +411,7 @@ export function TreeCanvasV3({
 
   useEffect(() => {
     if (!command) return;
-    if (command.type === "fit") resetView();
+    if (command.type === "fit") setView(FIT_VIEW);
     if (command.type === "zoomIn") zoomBy(0.3);
     if (command.type === "zoomOut") zoomBy(-0.25);
     if (command.type === "selected" && selectedNodeId) {
@@ -384,15 +439,13 @@ export function TreeCanvasV3({
       data-scale={view.scale.toFixed(2)}
       data-render-profile={mobileSafeRendering ? "mobile-safe" : "full"}
       data-rendered-nodes={renderIds.size}
+      data-interacting="false"
       viewBox={viewBox}
       role="tree"
       aria-label={locale === "ko" ? "랜덤다이스2 인게임 다이스 트리" : "Random Dice 2 in-game Dice Tree"}
       {...bind}
     >
       <defs>
-        {!mobileSafeRendering && <filter id="v3-node-shadow" x="-70%" y="-70%" width="240%" height="240%">
-          <feDropShadow dx="0" dy="16" stdDeviation="18" floodColor="#302855" floodOpacity=".15" />
-        </filter>}
         <linearGradient id="v3-recommend-edge" x1="0" x2="1">
           <stop offset="0" stopColor="#765ce9" />
           <stop offset="1" stopColor="#e7b34e" />
@@ -406,7 +459,7 @@ export function TreeCanvasV3({
         height={bounds.height + margin * 2}
         aria-hidden="true"
       />
-      <g data-testid="v3-tree-transform" transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
+      <g ref={transformRef} className="v3-tree-transform" data-testid="v3-tree-transform" transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
         {nodes.flatMap((node) => node.prerequisites.map((prerequisite) => {
           const parent = byId.get(prerequisite.nodeId);
           if (!parent || (!renderIds.has(parent.id) && !renderIds.has(node.id))) return null;
@@ -418,10 +471,12 @@ export function TreeCanvasV3({
           const simulated = invested && (parentSimulated || nodeSimulated);
           const recommended = recommendedIds.has(parent.id) && recommendedIds.has(node.id);
           const dimmed = !visibleIds.has(parent.id) && !visibleIds.has(node.id);
+          const focusPath = prerequisiteFocusIds.has(parent.id) && prerequisiteFocusIds.has(node.id);
+          const contextDimmed = prerequisiteFocusIds.size > 0 && !focusPath;
           return <line
             key={`${parent.id}-${node.id}`}
             data-testid={`v3-edge-${parent.id}-${node.id}`}
-            className={`v3-tree-edge ${invested ? "is-invested" : ""} ${simulated ? "is-simulated" : ""} ${recommended ? "is-recommended" : ""} ${dimmed ? "is-dimmed" : ""}`}
+            className={`v3-tree-edge ${invested ? "is-invested" : ""} ${simulated ? "is-simulated" : ""} ${recommended ? "is-recommended" : ""} ${focusPath ? "is-focus-path" : ""} ${contextDimmed ? "is-context-dimmed" : ""} ${dimmed ? "is-dimmed" : ""}`}
             x1={parent.position.x}
             y1={-parent.position.y}
             x2={node.position.x}
@@ -440,8 +495,9 @@ export function TreeCanvasV3({
             simulatedRank={simulatedRank}
             selected={selectedNodeId === node.id}
             recommended={recommendedIds.has(node.id)}
-            dimmed={!visibleIds.has(node.id)}
+            dimmed={!visibleIds.has(node.id) || (prerequisiteFocusIds.size > 0 && !prerequisiteFocusIds.has(node.id))}
             canIncrement={canIncrementNodeV3(node, ownedRanks, simulatedRanks)}
+            showCost={showCosts}
             nextCost={nextRankCost(node, simulatedRank)}
             heatmap={heatmap.get(node.id)}
             onSelect={onSelect}
@@ -450,6 +506,33 @@ export function TreeCanvasV3({
         })}
       </g>
     </svg>
+
+    <button
+      className="v57-tree-minimap"
+      type="button"
+      aria-label={locale === "ko" ? "미니맵에서 트리 위치 이동" : "Move through the tree with the minimap"}
+      onClick={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const world = minimapWorldRef.current;
+        const targetX = world.x + ((event.clientX - rect.left) / Math.max(1, rect.width)) * world.width;
+        const targetY = world.y + ((event.clientY - rect.top) / Math.max(1, rect.height)) * world.height;
+        setView((current) => ({
+          ...current,
+          x: center.x - targetX * current.scale,
+          y: center.y - targetY * current.scale,
+        }));
+      }}
+    >
+      <svg viewBox={viewBox} preserveAspectRatio="none" aria-hidden="true">
+        {nodes.flatMap((node) => node.prerequisites.map((entry) => {
+          const parent = byId.get(entry.nodeId);
+          return parent ? <line key={`${parent.id}-${node.id}`} x1={parent.position.x} y1={-parent.position.y} x2={node.position.x} y2={-node.position.y} /> : null;
+        }))}
+        {nodes.map((node) => <circle key={node.id} cx={node.position.x} cy={-node.position.y} r={node.kind === "dice" ? 28 : 15} className={`family-${node.family} ${selectedNodeId === node.id ? "is-selected" : ""}`} />)}
+        <rect ref={minimapViewportRef} className="v57-minimap-window" />
+      </svg>
+      <span>{Math.round(view.scale * 100)}%</span>
+    </button>
 
     {normalizedQuery && <div className={`v44-tree-search-status ${matchingNodes.length ? "has-results" : "is-empty"}`} role="status" data-testid="v44-tree-search-status">
       <strong>{matchingNodes.length}</strong>
@@ -474,7 +557,7 @@ export function TreeCanvasV3({
 
     <div className="v3-tree-zoom-controls" aria-label={locale === "ko" ? "트리 보기 조절" : "Tree view controls"}>
       <button type="button" aria-label="Zoom out" onClick={() => zoomBy(-0.15)}>−</button>
-      <button type="button" data-testid="v3-fit-tree" onClick={resetView}>{locale === "ko" ? "전체" : "Fit"}</button>
+      <button type="button" data-testid="v3-fit-tree" onClick={() => setView(FIT_VIEW)}>{locale === "ko" ? "전체" : "Fit"}</button>
       <button type="button" aria-label="Zoom in" onClick={() => zoomBy(0.2)} disabled={view.scale >= MAX_TREE_SCALE}>+</button>
     </div>
   </div>;

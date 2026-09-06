@@ -3,6 +3,11 @@ dist/
 playwright-report/
 test-results/
 .vite/
+.wrangler/
+.dev.vars
+.env
+.env.*
+!.env.example
 .codex-progress.json
 *.ipa
 tools/rd2-extract/work/

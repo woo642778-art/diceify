@@ -30,8 +30,14 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Unit and component tests
         run: npm test
+      - name: Worker SQL and domain tests
+        run: npm run test:worker
+      - name: Worker type check
+        run: npm run typecheck:worker
       - name: Production build
         run: npm run build
+      - name: Worker deployment dry run
+        run: npm run build:worker
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: End-to-end tests
