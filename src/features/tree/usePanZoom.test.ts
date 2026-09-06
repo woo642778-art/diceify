@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bindNativeTreeGestureGuardV55, MAX_TREE_SCALE, screenDeltaToSvgUnits } from "./usePanZoom";
+import { bindNativeTreeGestureGuardV55, bindNativeTreeWheelV59, MAX_TREE_SCALE, screenDeltaToSvgUnits } from "./usePanZoom";
 
 describe("screenDeltaToSvgUnits", () => {
   it("converts CSS-pixel drag distance into the SVG viewBox coordinate system", () => {
@@ -25,5 +25,15 @@ describe("screenDeltaToSvgUnits", () => {
     expect(guarded.defaultPrevented).toBe(true);
     release();
     expect(canvas.dispatchEvent(new Event("gesturestart", { cancelable: true }))).toBe(true);
+  });
+
+  it("binds wheel zoom as a cancellable native listener", () => {
+    const canvas = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    const release = bindNativeTreeWheelV59(canvas, (event) => event.preventDefault());
+    const wheel = new WheelEvent("wheel", { cancelable: true, deltaY: -100 });
+    expect(canvas.dispatchEvent(wheel)).toBe(false);
+    expect(wheel.defaultPrevented).toBe(true);
+    release();
+    expect(canvas.dispatchEvent(new WheelEvent("wheel", { cancelable: true }))).toBe(true);
   });
 });

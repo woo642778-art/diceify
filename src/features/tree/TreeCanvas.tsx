@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { DiceFamily, Recommendation, TreeNodeDefinition } from "../../domain/types";
 import { useI18n } from "../../i18n/I18nContext";
 import { strings } from "../../i18n/strings";
@@ -27,7 +27,13 @@ interface Props {
 
 export function TreeCanvas({ nodes, ranks, selectedNodeId, onSelect, recommendations, familyFilter, search }: Props) {
   const { t } = useI18n();
-  const { view, resetView, bind } = usePanZoom();
+  const canvasRef = useRef<SVGSVGElement>(null);
+  const { view, resetView, bindNativeWheel, bind } = usePanZoom();
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    return bindNativeWheel(canvas);
+  }, [bindNativeWheel]);
   const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const recommended = new Set(recommendations.map((item) => item.nodeId));
   const query = search.trim().toLocaleLowerCase();
@@ -47,6 +53,7 @@ export function TreeCanvas({ nodes, ranks, selectedNodeId, onSelect, recommendat
         <button type="button" className="icon-button" onClick={resetView} aria-label="Reset view">⌖</button>
       </div>
       <svg
+        ref={canvasRef}
         className="tree-canvas"
         {...bind}
         data-testid="tree-canvas"

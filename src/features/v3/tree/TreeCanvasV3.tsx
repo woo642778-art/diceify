@@ -314,7 +314,7 @@ export function TreeCanvasV3({
   const markInteraction = useCallback((active: boolean) => {
     if (canvasRef.current) canvasRef.current.dataset.interacting = String(active);
   }, []);
-  const { view, setView, consumePointerClick, bind } = usePanZoom(INITIAL_VIEW, {
+  const { view, setView, consumePointerClick, bindNativeWheel, bind } = usePanZoom(INITIAL_VIEW, {
     onTransientView: renderTransientView,
     onInteractionChange: markInteraction,
   });
@@ -326,8 +326,13 @@ export function TreeCanvasV3({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    return bindNativeTreeGestureGuardV55(canvas);
-  }, []);
+    const releaseGestureGuard = bindNativeTreeGestureGuardV55(canvas);
+    const releaseWheel = bindNativeWheel(canvas);
+    return () => {
+      releaseGestureGuard();
+      releaseWheel();
+    };
+  }, [bindNativeWheel]);
   const byId = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
   const bounds = useMemo(() => boundsOf(nodes), [nodes]);
   const margin = Math.max(260, Math.max(bounds.width, bounds.height) * 0.05);

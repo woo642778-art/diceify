@@ -46,6 +46,14 @@ export function bindNativeTreeGestureGuardV55(element: SVGSVGElement) {
   return () => eventNames.forEach((name) => element.removeEventListener(name, preventNativeZoom));
 }
 
+export function bindNativeTreeWheelV59(
+  element: SVGSVGElement,
+  handler: (event: WheelEvent) => void,
+) {
+  element.addEventListener("wheel", handler, { passive: false });
+  return () => element.removeEventListener("wheel", handler);
+}
+
 function viewportMetrics(svg: SVGSVGElement): SvgViewportMetrics {
   const matrix = svg.getScreenCTM?.();
   if (matrix) {
@@ -157,9 +165,10 @@ export function usePanZoom(
     setCommittedView(next);
   }, [renderTransientView]);
 
-  const onWheel = useCallback((event: React.WheelEvent<SVGSVGElement>) => {
+  const onWheel = useCallback((event: WheelEvent) => {
     event.preventDefault();
-    const point = clientPointToSvg(event.currentTarget, event.clientX, event.clientY);
+    const target = event.currentTarget as SVGSVGElement;
+    const point = clientPointToSvg(target, event.clientX, event.clientY);
     const current = queuedView.current ?? liveView.current;
     const nextScale = clampTreeScale(current.scale * Math.exp(-event.deltaY * 0.0014));
     const ratio = nextScale / current.scale;
@@ -178,6 +187,10 @@ export function usePanZoom(
       }, wheelCommitDelayMs.current);
     }
   }, [commitLiveView, queueView]);
+
+  const bindNativeWheel = useCallback((element: SVGSVGElement) => (
+    bindNativeTreeWheelV59(element, onWheel)
+  ), [onWheel]);
 
   const onPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (pointers.current.size === 0) {
@@ -282,6 +295,7 @@ export function usePanZoom(
     setView,
     resetView,
     consumePointerClick,
-    bind: { onWheel, onPointerDown, onPointerMove, onPointerUp: endPointer, onPointerCancel: endPointer },
+    bindNativeWheel,
+    bind: { onPointerDown, onPointerMove, onPointerUp: endPointer, onPointerCancel: endPointer },
   };
 }

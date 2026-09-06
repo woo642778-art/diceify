@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type PointerEvent, type TouchEvent as ReactTouchEvent, type WheelEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type TouchEvent as ReactTouchEvent } from "react";
 import type { Confidence, DiceFamily, ResourceCostV2, TreeNodeV2 } from "../../domain/types";
 
 interface TreeCanvasV2Props {
@@ -56,6 +56,7 @@ function touchMetrics(touches: ReactTouchEvent<SVGSVGElement>["touches"]) {
 }
 
 export function TreeCanvasV2({ nodes, selectedNodeId, plannedRanks, recommendedIds, familyFilter, query, locale, onSelect }: TreeCanvasV2Props) {
+  const canvasRef = useRef<SVGSVGElement>(null);
   const [view, setView] = useState({ x: 0, y: 10, scale: 1 });
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
   const touch = useRef<{ x: number; y: number; distance: number } | null>(null);
@@ -74,10 +75,16 @@ export function TreeCanvasV2({ nodes, selectedNodeId, plannedRanks, recommendedI
     return ids;
   }, [familyFilter, locale, nodes, normalizedQuery]);
 
-  const wheel = (event: WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    setView((current) => ({ ...current, scale: clampScale(current.scale * Math.exp(-event.deltaY * 0.0012)) }));
-  };
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const wheel = (event: WheelEvent) => {
+      event.preventDefault();
+      setView((current) => ({ ...current, scale: clampScale(current.scale * Math.exp(-event.deltaY * 0.0012)) }));
+    };
+    canvas.addEventListener("wheel", wheel, { passive: false });
+    return () => canvas.removeEventListener("wheel", wheel);
+  }, []);
   const pointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (event.pointerType === "touch" || (event.target as Element).closest("[data-tree-node='true']")) return;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -112,9 +119,9 @@ export function TreeCanvasV2({ nodes, selectedNodeId, plannedRanks, recommendedI
   const zoom = (delta: number) => setView((current) => ({ ...current, scale: clampScale(current.scale + delta) }));
 
   return <div className="tree-canvas-wrap">
-    <svg className="tree-canvas-v2" data-testid="tree-canvas" viewBox="-1100 -930 2200 1860" role="tree"
+    <svg ref={canvasRef} className="tree-canvas-v2" data-testid="tree-canvas" viewBox="-1100 -930 2200 1860" role="tree"
       aria-label={locale === "ko" ? "랜덤다이스2 다이스 트리" : "Random Dice 2 Dice Tree"}
-      onWheel={wheel} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}
+      onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}
       onTouchStart={touchStart} onTouchMove={touchMove} onTouchEnd={touchEnd} onTouchCancel={touchEnd}>
       <defs>
         <filter id="soft-shadow" x="-60%" y="-60%" width="220%" height="220%"><feDropShadow dx="0" dy="5" stdDeviation="7" floodColor="#392f7d" floodOpacity="0.16" /></filter>

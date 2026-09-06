@@ -130,6 +130,9 @@ test("tree pan renders before pointer release and never flashes a white document
     await mobileCdp!.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   } else await page.mouse.up();
   await expect(canvas).toHaveAttribute("data-interacting", "false");
+  const beforeWheel = await transform.getAttribute("transform");
+  await canvas.dispatchEvent("wheel", { deltaY: -180, clientX: startX, clientY: startY });
+  await expect.poll(() => transform.getAttribute("transform")).not.toBe(beforeWheel);
   expect(errors).toEqual([]);
 });
 
