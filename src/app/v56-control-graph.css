@@ -26,8 +26,18 @@ body,
 #root,
 .v3-app {
   min-height: 100%;
-  background: var(--v56-void);
   color: var(--v56-mist);
+}
+
+/* Keep the root painting surface opaque during mobile pinch zoom and rubber-band scroll. */
+html {
+  background-color: #020706 !important;
+  color-scheme: dark;
+}
+
+#root,
+.v3-app {
+  background-color: var(--v56-void);
 }
 
 body {
@@ -782,7 +792,10 @@ a:focus-visible {
   html,
   body,
   #root,
-  .v3-app { min-height: 100dvh; background: var(--v56-void); }
+  .v3-app { min-height: 100dvh; }
+  html,
+  #root,
+  .v3-app { background-color: #020706 !important; }
   body { overflow-x: hidden; }
   .v3-header {
     height: 62px;

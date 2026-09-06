@@ -124,7 +124,7 @@ test("tree pan renders before pointer release and never flashes a white document
   }
   await expect(canvas).toHaveAttribute("data-interacting", "true");
   await expect.poll(() => transform.getAttribute("transform")).not.toBe(before);
-  await expect(page.locator("html")).not.toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await expect(page.locator("html")).toHaveCSS("background-color", "rgb(2, 7, 6)");
   await expect(page.locator("body")).not.toHaveCSS("background-color", "rgb(255, 255, 255)");
   if (isMobile) {
     await mobileCdp!.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });

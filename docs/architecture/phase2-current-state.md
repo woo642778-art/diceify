@@ -1,6 +1,6 @@
 # Phase 2 current state, 2026-09-06
 
-This is a code audit, not a production-readiness claim. Production remains the GitHub Pages planner at commit b2e0d4a. The uncommitted platform branch contains a locally running Worker; Cloudflare and Google credentials have not been configured.
+This is a code audit, not a production-readiness claim. The static GitHub Pages application is live from merge commit `c08fbe8`, including the mobile tree fixes and the honest local-mode online shell. The Cloudflare Worker is implemented and locally verified, but it is not deployed because the Cloudflare resources and Google credentials have not been configured.
 
 | Area | Reusable implementation | Remaining evidence or gap |
 | --- | --- | --- |
@@ -18,4 +18,4 @@ This is a code audit, not a production-readiness claim. Production remains the G
 
 Measured initial bundle: 757.22 kB JS (207.83 kB gzip), online chunk 33.81 kB (11.18 kB gzip). The online chunk is lazy. No socket or AI request runs on initial tree load. The full browser suite passes 50 scenarios with 7 intentional viewport skips, plus the previously failing tree-search interaction in an isolated rerun. These are not authenticated E2E or physical-device tests.
 
-Queries are parameterized and bounded. Unique snapshot versions, exact socket membership and server-side dice validation are enforced. Production release is still blocked by missing Cloudflare resources/secrets, Google OIDC configuration, authenticated staging, physical Safari evidence, retention jobs and an operator moderation UI.
+Queries are parameterized and bounded. Unique snapshot versions, exact socket membership and server-side dice validation are enforced. The online backend release is still blocked by missing Cloudflare resources/secrets, Google OIDC configuration, authenticated staging, physical Safari evidence, retention jobs and an operator moderation UI. Static Pages deployment is not blocked and is live.
