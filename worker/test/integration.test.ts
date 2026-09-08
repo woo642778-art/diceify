@@ -121,6 +121,18 @@ describe("Worker + migrated SQLite integrity",()=>{
     expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM notifications").get()?.n).toBe(1);
     expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM community_deck_aggregates WHERE deck_fingerprint='stale'").get()?.n).toBe(0);
   });
+  it("allows one audited admin action per open report and prevents duplicate sanctions",async()=>{
+    database.sqlite.prepare("UPDATE users SET role='owner' WHERE id='owner'").run();
+    const timestamp=new Date().toISOString();
+    database.sqlite.prepare("INSERT INTO user_reports(id,reporter_id,subject_user_id,reason,detail,created_at,updated_at) VALUES('report','owner','other','abuse','evidence',?,?)").run(timestamp,timestamp);
+    const input={state:"resolved",resolution:"verified abuse",sanctionLevel:2,sanctionHours:24};
+    expect((await request("/api/v1/admin/reports/report/action","POST",input,owner)).status).toBe(200);
+    expect((await request("/api/v1/admin/reports/report/action","POST",input,owner)).status).toBe(404);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM user_sanctions WHERE user_id='other'").get()?.n).toBe(1);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM admin_audit_logs WHERE target_id='report'").get()?.n).toBe(1);
+    expect((await request("/api/v1/admin/audit","GET",undefined,owner)).status).toBe(200);
+    expect((await request("/api/v1/admin/audit","GET",undefined,other)).status).toBe(403);
+  });
   it("publishes only consented community aggregates that meet the 25-account cohort",async()=>{
     const timestamp=new Date().toISOString();
     database.sqlite.prepare("INSERT INTO events(id,slug,title,status,starts_at,ends_at,reward_points,created_at,updated_at) VALUES('aggregate-event','aggregate-event','Aggregate','active','2020','2099',0,'2020','2020')").run();

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommunityRecommendations, RewardsPanel } from "./OnlinePlatformView";
+import { AdminOperationsPanel } from "./AdminOperationsPanel";
 
 const platformMocks = vi.hoisted(() => ({
   get: vi.fn(),
@@ -83,5 +84,22 @@ describe("online community workflows", () => {
       "POST",
       expect.objectContaining({ "Idempotency-Key":expect.any(String) }),
     ));
+  });
+
+  it("lets an owner resolve one report with an audited optional sanction", async () => {
+    platformMocks.get.mockImplementation((path: string) => {
+      if (path === "/api/v1/admin/overview") return Promise.resolve({ users:{count:12},rooms:{count:2},reports:{count:1},sockets:{count:null},environment:"staging" });
+      if (path === "/api/v1/admin/reports") return Promise.resolve({ reports:[{ id:"report-1",reporter_id:"reporter",subject_user_id:"subject",message_id:null,reason:"abuse",detail:"evidence",state:"open",created_at:"2026-09-08T00:00:00.000Z",updated_at:"2026-09-08T00:00:00.000Z" }] });
+      if (path === "/api/v1/admin/audit") return Promise.resolve({ entries:[] });
+      return Promise.reject(new Error("unexpected_path"));
+    });
+    platformMocks.mutate.mockResolvedValue({ ok:true });
+    render(<AdminOperationsPanel locale="ko" me={{ user:{ id:"owner",displayName:"Owner",avatarUrl:null,role:"owner" },profile:{},points:0,csrf:"owner-csrf" }}/>);
+    await screen.findByText("evidence");
+    fireEvent.change(screen.getByLabelText("처리 근거"),{target:{value:"확인된 위반"}});
+    fireEvent.change(screen.getByLabelText("제재 단계"),{target:{value:"2"}});
+    fireEvent.change(screen.getByLabelText("적용 시간"),{target:{value:"48"}});
+    fireEvent.click(screen.getByRole("button",{name:"해결 적용"}));
+    await waitFor(()=>expect(platformMocks.mutate).toHaveBeenCalledWith("/api/v1/admin/reports/report-1/action",{state:"resolved",resolution:"확인된 위반",sanctionLevel:2,sanctionHours:48},"owner-csrf"));
   });
 });

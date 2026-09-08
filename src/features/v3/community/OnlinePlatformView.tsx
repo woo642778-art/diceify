@@ -6,9 +6,10 @@ import { isPlatformConfigured, PlatformApiError, platformGet, platformMutate, pl
 import {PersonalLab} from "./PersonalLab";
 import {CloudSyncPanel} from "./CloudSyncPanel";
 import {PartyBoard} from "./PartyBoard";
+import {AdminOperationsPanel} from "./AdminOperationsPanel";
 
 type Locale = "ko" | "en";
-type Section = "builds" | "rooms" | "matchmaking" | "rewards" | "privacy" | "lab";
+type Section = "builds" | "rooms" | "matchmaking" | "rewards" | "privacy" | "lab" | "operations";
 type PublicBuild = { slug:string; title:string; description:string; mode:string; deck_json:string; total_gold:number; total_core:number; nickname:string; likes:number; copies:number; updated_at:string };
 type Room = { id:string; title:string; category:string; description:string; max_members:number; tags_json:string; slow_mode_seconds:number };
 type MatchPost = { id:string; kind:string; target:string; role:string; looking_for:string; deck_json:string; beginner_ok:number; capacity:number; current_members:number; expires_at:string };
@@ -67,6 +68,11 @@ export function OnlinePlatformView({ locale, state, deckIds,onRestore,onDeckChan
   const handlePointsChange = useCallback((points:number) => {
     setMe((current) => current && current.points !== points ? { ...current,points } : current);
   },[]);
+  const canOperate = me?.user.role === "admin" || me?.user.role === "owner";
+
+  useEffect(() => {
+    if (section === "operations" && !canOperate) setSection("builds");
+  },[canOperate,section]);
 
   const refresh = useCallback(async () => {
     if (!platformConfigured) {
@@ -232,7 +238,7 @@ export function OnlinePlatformView({ locale, state, deckIds,onRestore,onDeckChan
     <div className="v58-online-nav"><button className={section==="lab"?"is-active":""} onClick={()=>setSection("lab")}>{locale==="ko"?"내 연구 · What-if":"Personal lab · What-if"}</button></div>
     {section==="lab"&&<PersonalLab locale={locale} state={state} deck={deckIds} onApply={onRestore}/>}
     {me&&section==="privacy"&&<CloudSyncPanel locale={locale} me={me} state={state} onRestore={onRestore}/>}
-    <nav className="v58-online-nav">{(["builds","rooms","matchmaking","rewards","privacy"] as Section[]).map((item) => <button type="button" key={item} className={section===item?"is-active":""} onClick={() => setSection(item)}>{item === "builds" ? (locale === "ko" ? "빌드 허브" : "Builds") : item === "rooms" ? (locale === "ko" ? "연구방" : "Rooms") : item === "matchmaking" ? (locale === "ko" ? "파티 모집" : "Matchmaking") : item === "rewards" ? (locale === "ko" ? "이벤트·포인트" : "Events") : (locale === "ko" ? "개인정보" : "Privacy")}</button>)}</nav>
+    <nav className="v58-online-nav">{(["builds","rooms","matchmaking","rewards","privacy",...(canOperate?["operations" as const]:[])] as Section[]).map((item) => <button type="button" key={item} className={section===item?"is-active":""} onClick={() => setSection(item)}>{item === "builds" ? (locale === "ko" ? "빌드 허브" : "Builds") : item === "rooms" ? (locale === "ko" ? "연구방" : "Rooms") : item === "matchmaking" ? (locale === "ko" ? "파티 모집" : "Matchmaking") : item === "rewards" ? (locale === "ko" ? "이벤트·포인트" : "Events") : item === "operations" ? (locale === "ko" ? "운영 검토" : "Operations") : (locale === "ko" ? "개인정보" : "Privacy")}</button>)}</nav>
 
     {section === "builds" && <><div className="v58-online-layout"><section className="v58-compose"><small>MY BUILD</small><h2>{locale === "ko" ? "현재 계산 결과 저장" : "Save current calculation"}</h2><DiceRow deck={deckIds} locale={locale}/><label>{locale === "ko" ? "빌드 이름" : "Build name"}<input value={buildTitle} maxLength={80} onChange={(event) => setBuildTitle(event.target.value)} /></label><label>{locale === "ko" ? "공개 범위" : "Visibility"}<select value={buildVisibility} onChange={(event) => setBuildVisibility(event.target.value as typeof buildVisibility)}><option value="private">{locale === "ko" ? "비공개" : "Private"}</option><option value="unlisted">{locale === "ko" ? "링크 공개" : "Unlisted"}</option><option value="public">{locale === "ko" ? "전체 공개" : "Public"}</option></select></label><dl><div><dt>Gold</dt><dd>{cost.gold.toLocaleString()}</dd></div><div><dt>Core</dt><dd>{cost.stone.toLocaleString()}</dd></div></dl><button type="button" disabled={!me || buildTitle.trim().length < 1 || deckIds.length !== 5} onClick={() => void publishBuild()}>{locale === "ko" ? "버전 1로 저장" : "Save version 1"}</button></section><section className="v58-public-grid"><header><small>COMMUNITY BUILDS</small><h2>{locale === "ko" ? "공개 빌드" : "Public builds"}</h2></header>{builds.length ? builds.map((build) => <article key={build.slug}><header><span>{build.mode}</span><small>{new Date(build.updated_at).toLocaleDateString()}</small></header><h3>{build.title}</h3><p>{build.description || (locale === "ko" ? `${build.nickname}의 공개 빌드` : `Public build by ${build.nickname}`)}</p><DiceRow deck={parseDeck(build.deck_json)} locale={locale}/><footer><span>+{Number(build.likes)} · Copy {Number(build.copies)}</span><b>{Number(build.total_gold).toLocaleString()} G · {Number(build.total_core).toLocaleString()} C</b></footer></article>) : <p className="v58-empty">{locale === "ko" ? "아직 공개 빌드가 없습니다. 가짜 예시는 표시하지 않습니다." : "No public builds yet. No fabricated examples are shown."}</p>}</section></div><CommunityRecommendations locale={locale} segment={recommendationSegment} status={communityDeckStatus} decks={communityDecks} onSegment={setRecommendationSegment} onApply={(deck)=>{onDeckChange(deck);setNotice(locale==="ko"?"검증된 커뮤니티 덱을 내 덱 분석기에 적용했습니다.":"Applied the verified community deck to your analyzer.");}}/></>}
 
@@ -242,6 +248,7 @@ export function OnlinePlatformView({ locale, state, deckIds,onRestore,onDeckChan
 
     {section === "rewards" && <RewardsPanel locale={locale} me={me} deck={deckIds} platformConfigured={platformConfigured} onPointsChange={handlePointsChange}/>}
     {section === "privacy" && <PrivacyPanel locale={locale} me={me}/>} 
+    {section === "operations" && canOperate && me && <AdminOperationsPanel locale={locale} me={me}/>}
   </main>;
 }
 

@@ -548,22 +548,35 @@ app.get("/api/v1/admin/reports", async (c) => {
   return c.json({ reports: rows.results });
 });
 
+app.get("/api/v1/admin/audit", async (c) => {
+  const user = c.get("user");
+  if (!["admin","owner"].includes(user.role)) return c.json({ error: "forbidden" }, 403);
+  const rows = await c.env.DB.prepare("SELECT id,admin_user_id,action,target_type,target_id,metadata_json,created_at FROM admin_audit_logs ORDER BY created_at DESC LIMIT 100").all();
+  return c.json({ entries:rows.results });
+});
+
 app.post("/api/v1/admin/reports/:reportId/action", async (c) => {
   const user = c.get("user");
   if (!["admin","owner"].includes(user.role)) return c.json({ error: "forbidden" }, 403);
   const input = await parseJson(c.req.raw,adminReportActionSchema);
-  const report = await c.env.DB.prepare("SELECT subject_user_id FROM user_reports WHERE id=?").bind(c.req.param("reportId")).first<{ subject_user_id:string|null }>();
+  const report = await c.env.DB.prepare("SELECT subject_user_id FROM user_reports WHERE id=? AND state IN ('open','reviewing')").bind(c.req.param("reportId")).first<{ subject_user_id:string|null }>();
   if (!report) return c.json({ error: "report_not_found" }, 404);
   const timestamp = now();
+  const actionId = id();
   const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare("UPDATE user_reports SET state=?,updated_at=? WHERE id=?").bind(input.state,timestamp,c.req.param("reportId")),
-    c.env.DB.prepare("INSERT INTO admin_audit_logs (id,admin_user_id,action,target_type,target_id,metadata_json,created_at) VALUES (?,?,?,?,?,?,?)").bind(id(),user.id,`report:${input.state}`,"report",c.req.param("reportId"),jsonText({ resolution: input.resolution, sanctionLevel: input.sanctionLevel }),timestamp),
+    c.env.DB.prepare("UPDATE user_reports SET state=?,updated_at=?,last_action_id=? WHERE id=? AND state IN ('open','reviewing')").bind(input.state,timestamp,actionId,c.req.param("reportId")),
+    c.env.DB.prepare(`INSERT INTO admin_audit_logs (id,admin_user_id,action,target_type,target_id,metadata_json,created_at)
+      SELECT ?,?,?, 'report',id,?,? FROM user_reports WHERE id=? AND last_action_id=?`)
+      .bind(id(),user.id,`report:${input.state}`,jsonText({ resolution: input.resolution, sanctionLevel: input.sanctionLevel }),timestamp,c.req.param("reportId"),actionId),
   ];
   if (input.sanctionLevel && report.subject_user_id) {
     const endsAt = input.sanctionHours ? new Date(Date.now()+input.sanctionHours*60*60*1000).toISOString() : null;
-    statements.push(c.env.DB.prepare("INSERT INTO user_sanctions (id,user_id,level,reason,starts_at,ends_at,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?)").bind(id(),report.subject_user_id,input.sanctionLevel,input.resolution || "community_safety",timestamp,endsAt,user.id,timestamp,timestamp));
+    statements.push(c.env.DB.prepare(`INSERT INTO user_sanctions (id,user_id,level,reason,starts_at,ends_at,created_by,created_at,updated_at)
+      SELECT ?,?,?,?,?,?,?,?,? FROM user_reports WHERE id=? AND last_action_id=?`)
+      .bind(id(),report.subject_user_id,input.sanctionLevel,input.resolution || "community_safety",timestamp,endsAt,user.id,timestamp,timestamp,c.req.param("reportId"),actionId));
   }
-  await c.env.DB.batch(statements);
+  const results = await c.env.DB.batch(statements);
+  if (results[0].meta.changes !== 1) return c.json({ error:"report_already_actioned" },409);
   return c.json({ ok: true });
 });
 

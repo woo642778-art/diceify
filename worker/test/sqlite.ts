@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 /** Real SQL execution with D1's transaction-shaped API. No production fixtures. */
 export function testDatabase() {
   const sqlite=new DatabaseSync(":memory:");
-  for(const file of ["0001_platform.sql","0002_phase2_integrity.sql"]) sqlite.exec(readFileSync(new URL(`../migrations/${file}`,import.meta.url),"utf8"));
+  for(const file of ["0001_platform.sql","0002_phase2_integrity.sql","0003_operations.sql"]) sqlite.exec(readFileSync(new URL(`../migrations/${file}`,import.meta.url),"utf8"));
   class Statement {
     constructor(readonly sql:string,readonly args:unknown[]=[]){}
     bind(...args:unknown[]){return new Statement(this.sql,args);}

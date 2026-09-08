@@ -1,9 +1,9 @@
 # Progress: DiceTree production platform expansion and in-game tree UX
 
 - Status: active
-- Milestone: 7/12 (58%)
-- Updated: 2026-09-08T02:28:25
-- Current work: Daily Worker maintenance now expires transient sessions and quotas, transitions expired matchmaking, events and sanctions, prunes only stale notifications, and rebuilds all recommendation segments for recovery. User builds, snapshots, chats, point ledgers and audit logs are preserved; 18 Worker tests and deployment dry-run pass.
+- Milestone: 8/12 (67%)
+- Updated: 2026-09-08T02:47:01
+- Current work: Admin/owner-only operations review now loads live platform metrics, open reports and audit history; report outcomes and optional sanctions are conditionally committed once with immutable audit entries. Frontend and Worker tests pass.
 
 ## Log
 - 2026-09-04T15:02:55 | 1/12 | Repository, deployment, compatibility and performance baseline mapped; gesture rendering bottleneck fixed and measured.
@@ -13,3 +13,4 @@
 - 2026-09-06T04:39:32 | 5/12 | Static GitHub Pages release merged and deployed; public mobile smoke passed without console errors. Root document canvas is now forced opaque dark during pinch zoom, and desktop/mobile regression checks pass.
 - 2026-09-08T02:11:50 | 6/12 | Consent-gated community deck recommendations now render by mode and apply directly to Deck Lab. Event submission, live point ledger, and idempotent redemption workflows are implemented. Consent changes and account deletion rebuild recommendation aggregates; frontend and Worker verification pass.
 - 2026-09-08T02:28:25 | 7/12 | Daily Worker maintenance now expires transient sessions and quotas, transitions expired matchmaking, events and sanctions, prunes only stale notifications, and rebuilds all recommendation segments for recovery. User builds, snapshots, chats, point ledgers and audit logs are preserved; 18 Worker tests and deployment dry-run pass.
+- 2026-09-08T02:47:01 | 8/12 | Admin/owner-only operations review now loads live platform metrics, open reports and audit history; report outcomes and optional sanctions are conditionally committed once with immutable audit entries. Frontend and Worker tests pass.
