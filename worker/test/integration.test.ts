@@ -92,6 +92,12 @@ describe("Worker + migrated SQLite integrity",()=>{
     expect((await request("/api/v1/me","DELETE",undefined,owner)).status).toBe(200);
     expect((await request("/api/v1/me","DELETE",undefined,other)).status).toBe(200);
     expect((await request("/api/v1/me","GET",undefined,owner)).status).toBe(401);
+    expect(env.JOBS.send).toHaveBeenCalledWith({kind:"rebuild-community-all"});
+  });
+  it("queues privacy-safe aggregate rebuilding when recommendation consent changes",async()=>{
+    const response=await request("/api/v1/profile","PUT",{nickname:"Owner",mode:"coop",preferredRole:"dealer",spendProfile:"free",dataConsent:false,recommendationOptOut:true},owner);
+    expect(response.status,await response.clone().text()).toBe(200);
+    expect(env.JOBS.send).toHaveBeenCalledWith({kind:"rebuild-community-all"});
   });
   it("publishes only consented community aggregates that meet the 25-account cohort",async()=>{
     const timestamp=new Date().toISOString();
@@ -107,7 +113,12 @@ describe("Worker + migrated SQLite integrity",()=>{
     expect(eligible.status).toBe(200);
     expect((await eligible.json() as {decks:unknown[]}).decks).toHaveLength(1);
     database.sqlite.prepare("UPDATE profiles SET recommendation_opt_out=1 WHERE user_id='aggregate-0'").run();
-    await rebuildCommunityDeckSegment(env.DB,{submissionId:"submission-1",gameDataVersion:"1.0.1",algorithmVersion:"2"});
+    const immediatelySuppressed=await request("/api/v1/recommendations/community/coop");
+    expect((await immediatelySuppressed.json() as {decks:unknown[]}).decks).toHaveLength(0);
+    const ack=vi.fn(),retry=vi.fn();
+    await handleQueue({messages:[{body:{kind:"rebuild-community-all"},ack,retry}]} as unknown as MessageBatch<unknown>,env);
+    expect(ack).toHaveBeenCalledOnce();
+    expect(retry).not.toHaveBeenCalled();
     const suppressed=await request("/api/v1/recommendations/community/coop");
     expect((await suppressed.json() as {decks:unknown[]}).decks).toHaveLength(0);
   });

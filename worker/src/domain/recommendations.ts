@@ -42,7 +42,19 @@ export async function rebuildCommunityDeckSegment(
   ).bind(input.submissionId, input.gameDataVersion).first<{ mode: string }>();
   if (!submission || !["pvp", "coop", "crit"].includes(submission.mode)) return { rebuilt: false, segment: null, decks: 0 };
 
-  const segment = submission.mode;
+  return rebuildCommunityDeckSegmentByMode(db, {
+    segment: submission.mode as "pvp" | "coop" | "crit",
+    gameDataVersion: input.gameDataVersion,
+    algorithmVersion: input.algorithmVersion,
+    now: input.now,
+  });
+}
+
+export async function rebuildCommunityDeckSegmentByMode(
+  db: D1Database,
+  input: { segment: "pvp" | "coop" | "crit"; gameDataVersion: string; algorithmVersion: string; now?: Date },
+) {
+  const segment = input.segment;
   const timestamp = input.now ?? new Date();
   const windowEnd = timestamp.toISOString();
   const windowStart = new Date(timestamp.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString();

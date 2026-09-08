@@ -6,7 +6,7 @@ import { phase2Routes } from "./routes/phase2";
 import { appendPointLedger, redeemCatalogItem } from "./domain/points";
 import { ChatRoom } from "./chatRoom";
 import { adminReportActionSchema, appealSchema, buildSchema, eventSubmissionSchema, matchmakingSchema, profileSchema, reactionSchema, recommendationFeedbackSchema, reportSchema, roomSchema, syncSchema } from "./schemas";
-import { communitySignal, rebuildCommunityDeckSegment } from "./domain/recommendations";
+import { communitySignal, rebuildCommunityDeckSegment, rebuildCommunityDeckSegmentByMode } from "./domain/recommendations";
 import { cookie, cookieValue, createApplicationSession, currentSession, randomToken, sha256, verifyGoogleIdToken, verifyTurnstile } from "./security";
 import type { Env, SessionUser } from "./types";
 
@@ -155,6 +155,7 @@ app.put("/api/v1/profile", async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(user_id) DO UPDATE SET nickname=excluded.nickname, mode=excluded.mode, preferred_role=excluded.preferred_role, spend_profile=excluded.spend_profile, data_consent=excluded.data_consent, recommendation_opt_out=excluded.recommendation_opt_out, updated_at=excluded.updated_at`,
   ).bind(user.id, input.nickname, input.mode, input.preferredRole, input.spendProfile, Number(input.dataConsent), Number(input.recommendationOptOut), timestamp, timestamp).run();
+  await c.env.JOBS.send({ kind: "rebuild-community-all" });
   return c.json({ ok: true, updatedAt: timestamp });
 });
 
@@ -420,11 +421,33 @@ app.get("/api/v1/recommendations/community/:segment", async (c) => {
   const segment=c.req.param("segment");
   if(!["pvp","coop","crit"].includes(segment))return c.json({error:"invalid_segment"},400);
   const rows = await c.env.DB.prepare(`SELECT a.deck_fingerprint,a.sample_count,a.weighted_count,a.positive_count,a.negative_count,a.window_start,a.window_end,
-    (SELECT es.deck_json FROM event_submissions es WHERE es.deck_fingerprint=a.deck_fingerprint AND es.game_data_version=a.game_data_version AND es.review_state='accepted' ORDER BY es.created_at DESC LIMIT 1) AS deck_json
-    FROM community_deck_aggregates a WHERE a.segment_key=? AND a.game_data_version=? AND a.algorithm_version=? ORDER BY a.weighted_count DESC LIMIT 30`).bind(segment,c.env.GAME_DATA_VERSION,c.env.ALGORITHM_VERSION).all<{ deck_fingerprint:string; sample_count:number; weighted_count:number; positive_count:number; negative_count:number; window_start:string; window_end:string;deck_json:string|null }>();
+    (SELECT COUNT(DISTINCT eligible.user_id) FROM event_submissions eligible
+      JOIN profiles eligible_profile ON eligible_profile.user_id=eligible.user_id AND eligible_profile.data_consent=1 AND eligible_profile.recommendation_opt_out=0
+      JOIN users eligible_user ON eligible_user.id=eligible.user_id AND eligible_user.account_state='active'
+      WHERE eligible.mode=a.segment_key AND eligible.deck_fingerprint=a.deck_fingerprint AND eligible.game_data_version=a.game_data_version
+        AND eligible.review_state='accepted' AND eligible.created_at>=a.window_start AND eligible.created_at<=a.window_end) AS current_sample_count,
+    (SELECT es.deck_json FROM event_submissions es
+      JOIN profiles p ON p.user_id=es.user_id AND p.data_consent=1 AND p.recommendation_opt_out=0
+      JOIN users u ON u.id=es.user_id AND u.account_state='active'
+      WHERE es.mode=a.segment_key AND es.deck_fingerprint=a.deck_fingerprint AND es.game_data_version=a.game_data_version
+        AND es.review_state='accepted' AND es.created_at>=a.window_start AND es.created_at<=a.window_end
+      ORDER BY es.created_at DESC LIMIT 1) AS deck_json
+    FROM community_deck_aggregates a WHERE a.segment_key=? AND a.game_data_version=? AND a.algorithm_version=? ORDER BY a.weighted_count DESC LIMIT 30`).bind(segment,c.env.GAME_DATA_VERSION,c.env.ALGORITHM_VERSION).all<{ deck_fingerprint:string; sample_count:number; current_sample_count:number; weighted_count:number; positive_count:number; negative_count:number; window_start:string; window_end:string;deck_json:string|null }>();
   const decks=rows.results.flatMap((row) => {
-    const community = communitySignal({ positive: row.positive_count, total: row.sample_count, weightedCount: row.weighted_count });
-    return community.eligible?[{ ...row, community }]:[];
+    const currentSampleCount = Number(row.current_sample_count);
+    const community = communitySignal({ positive: Math.min(row.positive_count,currentSampleCount), total: currentSampleCount, weightedCount: Math.min(row.weighted_count,currentSampleCount * 1.5) });
+    if (!community.eligible || !row.deck_json) return [];
+    return [{
+      deck_fingerprint:row.deck_fingerprint,
+      sample_count:currentSampleCount,
+      weighted_count:row.weighted_count,
+      positive_count:Math.min(row.positive_count,currentSampleCount),
+      negative_count:row.negative_count,
+      window_start:row.window_start,
+      window_end:row.window_end,
+      deck_json:row.deck_json,
+      community,
+    }];
   });
   return c.json({
     segment,
@@ -499,6 +522,7 @@ app.delete("/api/v1/me", async (c) => {
     c.env.DB.prepare("DELETE FROM notifications WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(user.id),
   ]);
+  await c.env.JOBS.send({ kind: "rebuild-community-all" });
   c.header("Set-Cookie", cookie("dt_session", "", { httpOnly: true, maxAge: 0 }), { append: true });
   c.header("Set-Cookie", cookie("dt_csrf", "", { maxAge: 0 }), { append: true });
   return c.json({ ok: true });
@@ -581,6 +605,14 @@ async function handleQueue(batch: MessageBatch<unknown>, env: Env) {
           gameDataVersion: env.GAME_DATA_VERSION,
           algorithmVersion: env.ALGORITHM_VERSION,
         });
+      } else if (body.kind === "rebuild-community-all") {
+        for (const segment of ["pvp","coop","crit"] as const) {
+          await rebuildCommunityDeckSegmentByMode(env.DB, {
+            segment,
+            gameDataVersion: env.GAME_DATA_VERSION,
+            algorithmVersion: env.ALGORITHM_VERSION,
+          });
+        }
       } else if (body.kind === "moderate-message" && body.messageId) {
         const row = await env.DB.prepare("SELECT room_id,user_id,body,client_nonce,reply_to_id,created_at FROM chat_messages WHERE id=? AND moderation_state='pending'").bind(body.messageId).first<{ room_id:string;user_id:string|null;body:string;client_nonce:string;reply_to_id:string|null;created_at:string }>();
         if (!row) { message.ack(); continue; }

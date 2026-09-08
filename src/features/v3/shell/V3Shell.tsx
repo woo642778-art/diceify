@@ -682,7 +682,7 @@ export function V3Shell() {
 
     {tab === "shop" && <PurchaseEfficiencyView locale={locale} />}
     {tab === "updates" && <UpdateCenterView data={gameDataV3} locale={locale} activeDeckIds={activeDeckIds} state={state} onUpdateSeen={() => setUpdateUnread(false)} />}
-    {tab === "community" && <Suspense fallback={<main className="v58-online"><p className="v58-empty">{locale === "ko" ? "온라인 플랫폼을 불러오는 중입니다." : "Loading the online platform."}</p></main>}><OnlinePlatformView locale={locale} state={state} deckIds={activeDeckIds} onRestore={(restored)=>dispatch({type:"load",state:restored})}/></Suspense>}
+    {tab === "community" && <Suspense fallback={<main className="v58-online"><p className="v58-empty">{locale === "ko" ? "온라인 플랫폼을 불러오는 중입니다." : "Loading the online platform."}</p></main>}><OnlinePlatformView locale={locale} state={state} deckIds={activeDeckIds} onRestore={(restored)=>dispatch({type:"load",state:restored})} onDeckChange={setActiveDeckIds}/></Suspense>}
 
     {mobileLayout && <nav className="v53-mobile-nav" aria-label={locale === "ko" ? "모바일 주요 화면" : "Mobile primary views"}>
       {(["account", "tree", "simulator"] as Tab[]).map((item) => <button key={item} type="button" className={tab === item ? "is-active" : ""} onClick={() => openTab(item)}><span aria-hidden="true">{item === "account" ? "●" : item === "tree" ? "◇" : "▶"}</span>{tabLabel(item, locale)}</button>)}
