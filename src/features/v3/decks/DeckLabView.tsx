@@ -64,6 +64,7 @@ function RankingLane({ data, decks, locale, role }: { data: CanonicalGameData; d
       <div><small>{role === "dealer" ? "DAMAGE CORE" : "CONTROL CORE"}</small><h3>{SNAPSHOT_ROLE_LABELS[role][locale]}</h3></div>
       <strong>{decks.length}</strong>
     </header>
+
     <div className="v43-ranked-list">
       {decks.slice(0, 4).map((deck) => <article key={deck.rank}>
         <b>#{deck.rank}</b>
@@ -88,13 +89,19 @@ export function DeckLabView(props: DeckLabViewProps) {
       <div>
         <small>{locale === "ko" ? "협동 랭킹 · 전체 주사위 분석" : "CO-OP RANKING · FULL ROSTER ANALYSIS"}</small>
         <h1>{locale === "ko" ? "덱 연구소" : "Deck Lab"}</h1>
-        <p>{locale === "ko" ? "최신 협동 랭킹의 실제 조합과 전체 플레이 가능 주사위의 능력치·효과를 함께 분석합니다." : "Combines observed co-op ranking compositions with stats and effects across every playable die."}</p>
+        <p>{locale === "ko" ? "검증된 8월 16일 협동 랭킹 조합과 1.1.0 전체 플레이 가능 주사위의 능력치·효과를 구분해 분석합니다." : "Separately analyzes the verified August 16 co-op ranking and all playable dice stats and effects from client 1.1.0."}</p>
       </div>
       <aside className="v4-meta-status" data-testid="v4-meta-status">
         <strong>{locale === "ko" ? `${CO_OP_RANKING_SNAPSHOT_DATE.replaceAll("-", ".")} 협동 랭킹 스냅샷` : `Co-op ranking snapshot · ${CO_OP_RANKING_SNAPSHOT_DATE}`}</strong>
         <p>{locale === "ko" ? `사용자 제공 랭킹 화면 ${CO_OP_RANKING_SOURCE_COUNT}장에서 1~105위의 525개 슬롯을 판독했습니다. 실시간 API가 아니므로 이후 순위 변동은 자동 반영되지 않습니다.` : `Read 525 slots across ranks 1–105 from ${CO_OP_RANKING_SOURCE_COUNT} supplied ranking captures. This is a dated snapshot, not a live API.`}</p>
       </aside>
     </header>
+
+    <section className="v59-meta-watch" data-testid="v59-meta-watch">
+      <DiceIcon diceId="solar" label={diceName(data, "solar", locale)} />
+      <div><small>{locale === "ko" ? "1.1.0 신규 · 랭킹 관측과 분리" : "NEW IN 1.1.0 · SEPARATE FROM RANKING"}</small><h2>{locale === "ko" ? "태양 주사위 메타 관찰" : "Solar Dice meta watch"}</h2><p>{locale === "ko" ? "태양 주사위와 전용 트리 2개 노드는 최신 클라이언트 데이터에 반영했습니다. 다만 보존된 8월 16일 랭킹은 출시 이전 자료이므로 사용률이나 티어를 꾸며내지 않고 신규 실험 후보로만 분리합니다." : "Solar Dice and its two dedicated tree nodes are included from the latest client. The preserved August 16 ranking predates this release, so no usage rate or tier is fabricated; Solar remains a separate experiment candidate."}</p></div>
+      <dl><div><dt>{locale === "ko" ? "클라이언트" : "Client"}</dt><dd>1.1.0</dd></div><div><dt>{locale === "ko" ? "트리 노드" : "Tree nodes"}</dt><dd>{data.tree.length}</dd></div><div><dt>{locale === "ko" ? "상태" : "Status"}</dt><dd>{locale === "ko" ? "관찰 중" : "Watch"}</dd></div></dl>
+    </section>
 
     <MyDeckAnalyzer
       data={data}

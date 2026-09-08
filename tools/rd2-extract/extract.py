@@ -20,6 +20,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--ipa", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--emit", type=Path, help="write normalized V3 JSON into this directory")
+    parser.add_argument("--client-version", default="1.0.1", help="version recorded in the emitted manifest")
+    parser.add_argument("--extracted-at", default="2026-08-16T00:00:00Z", help="UTC extraction timestamp")
     parser.add_argument(
         "--allow-new-client",
         action="store_true",
@@ -57,7 +59,13 @@ def _write_mapping_chunks(
         _write_json(emit_dir / f"{stem}.{index:02d}.json", part)
 
 
-def _emit_dataset(ipa_path: Path, emit_dir: Path, source_sha256: str) -> None:
+def _emit_dataset(
+    ipa_path: Path,
+    emit_dir: Path,
+    source_sha256: str,
+    client_version: str,
+    extracted_at: str,
+) -> None:
     resources = read_member(ipa_path, "/Data/resources.assets")
     metadata = read_member(ipa_path, "/Data/Managed/Metadata/global-metadata.dat")
     unity_framework = read_member(ipa_path, "/Frameworks/UnityFramework.framework/UnityFramework")
@@ -66,6 +74,8 @@ def _emit_dataset(ipa_path: Path, emit_dir: Path, source_sha256: str) -> None:
         metadata,
         unity_framework,
         source_sha256=source_sha256,
+        client_version=client_version,
+        extracted_at=extracted_at,
     )
     compact = compact_dataset(data)
 
@@ -99,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     _write_json(output_path, payload)
 
     if args.emit:
-        _emit_dataset(args.ipa, args.emit, source_sha256)
+        _emit_dataset(args.ipa, args.emit, source_sha256, args.client_version, args.extracted_at)
         print(f"canonicalData={args.emit}")
     print(f"sourceSha256={source_sha256}")
     print(f"archiveIndex={output_path}")

@@ -45,7 +45,7 @@ type DiceCompactRow = [
 
 type TreeCompactRow = [
   string, DiceFamilyV3 | "core", DiceTreeNodeV3["kind"], number, number,
-  string[], string | null, number, [number, number][], string | null, string | null, string | null,
+  Array<string | [string, number]>, string | null, number, Array<[number, number] | [number, number, number]>, string | null, string | null, string | null,
 ];
 
 type PassiveCompactRow = [
@@ -121,16 +121,20 @@ function expandDice(row: DiceCompactRow): DiceDefinitionV3 {
 }
 
 function expandTree(row: TreeCompactRow): DiceTreeNodeV3 {
-  const [id, family, kind, x, y, prerequisiteIds, targetId, maxRank, costs, linkedRef, nameKey, descriptionKey] = row;
+  const [id, family, kind, x, y, compactPrerequisites, targetId, maxRank, costs, linkedRef, nameKey, descriptionKey] = row;
   return {
     id,
     family,
     kind,
     position: { x, y },
-    prerequisites: prerequisiteIds.map((nodeId) => ({ nodeId, minRank: 1 })),
+    prerequisites: compactPrerequisites.map((entry) => (
+      typeof entry === "string"
+        ? { nodeId: entry, minRank: 1 }
+        : { nodeId: entry[0], minRank: entry[1] }
+    )),
     ...(targetId ? { targetId } : {}),
     maxRank,
-    costsByRank: costs.map(([gold, stone]) => ({ gold, stone })),
+    costsByRank: costs.map(([gold, stone, solarCore = 0]) => ({ gold, stone, ...(solarCore > 0 ? { solarCore } : {}) })),
     ...(linkedRef ? { passiveOrRuneRef: linkedRef } : {}),
     ...(nameKey ? { nameKey } : {}),
     ...(descriptionKey ? { descriptionKey } : {}),

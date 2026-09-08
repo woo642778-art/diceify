@@ -1,9 +1,9 @@
 # Progress: DiceTree production platform expansion and in-game tree UX
 
 - Status: active
-- Milestone: 8/12 (67%)
-- Updated: 2026-09-08T02:47:01
-- Current work: Admin/owner-only operations review now loads live platform metrics, open reports and audit history; report outcomes and optional sanctions are conditionally committed once with immutable audit entries. Frontend and Worker tests pass.
+- Milestone: 9/12 (75%)
+- Updated: 2026-09-08T15:39:00
+- Current work: Random Dice 2 client 1.1.0 is normalized into the live planner with Solar Dice, Solar Core, 241-node topology, exact prerequisite ranks, and client-derived node/currency art. Account analysis remains blank until a nickname/PID profile or verified snapshot is supplied. Desktop/mobile regression, 6x mobile zoom, account persistence, starter unlock, route purchase, and Solar branch checks pass.
 
 ## Log
 - 2026-09-04T15:02:55 | 1/12 | Repository, deployment, compatibility and performance baseline mapped; gesture rendering bottleneck fixed and measured.
@@ -14,3 +14,4 @@
 - 2026-09-08T02:11:50 | 6/12 | Consent-gated community deck recommendations now render by mode and apply directly to Deck Lab. Event submission, live point ledger, and idempotent redemption workflows are implemented. Consent changes and account deletion rebuild recommendation aggregates; frontend and Worker verification pass.
 - 2026-09-08T02:28:25 | 7/12 | Daily Worker maintenance now expires transient sessions and quotas, transitions expired matchmaking, events and sanctions, prunes only stale notifications, and rebuilds all recommendation segments for recovery. User builds, snapshots, chats, point ledgers and audit logs are preserved; 18 Worker tests and deployment dry-run pass.
 - 2026-09-08T02:47:01 | 8/12 | Admin/owner-only operations review now loads live platform metrics, open reports and audit history; report outcomes and optional sanctions are conditionally committed once with immutable audit entries. Frontend and Worker tests pass.
+- 2026-09-08T15:39:00 | 9/12 | Read-only 1.1.0 IPA extraction updates canonical data to 56 dice, 241 tree nodes, 111 passives, 154 runes and 28 enemies. Solar Core is modeled as a distinct currency across routing, affordability, optimizers, sharing and imports. All 249 frontend tests, 15 extractor tests, 19 Worker tests and 51 applicable desktop/mobile E2E flows pass; 7 viewport-specific flows are intentionally skipped in their non-target project.

@@ -107,15 +107,22 @@ def _expand_tree(row: list[Any]) -> dict[str, Any]:
         name_key,
         description_key,
     ) = row
+    prerequisite_rows = [
+        {"nodeId": entry[0], "minRank": entry[1]} if isinstance(entry, list) else {"nodeId": entry, "minRank": 1}
+        for entry in prerequisites
+    ]
     return {
         "id": node_id,
         "family": family,
         "kind": kind,
         "position": {"x": x, "y": y},
-        "prerequisites": sorted(prerequisites),
+        "prerequisites": prerequisite_rows,
         "targetId": target_id,
         "maxRank": max_rank,
-        "costsByRank": [{"gold": cost[0], "stone": cost[1]} for cost in costs],
+        "costsByRank": [
+            {"gold": cost[0], "stone": cost[1], "solarCore": cost[2] if len(cost) > 2 else 0}
+            for cost in costs
+        ],
         "passiveOrRuneRef": linked_ref,
         "nameKey": name_key,
         "descriptionKey": description_key,

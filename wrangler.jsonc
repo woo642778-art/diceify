@@ -42,7 +42,7 @@
   "vars": {
     "APP_ENV": "staging",
     "APP_ORIGIN": "http://127.0.0.1:8787",
-    "GAME_DATA_VERSION": "1.0.1",
+    "GAME_DATA_VERSION": "1.1.0",
     "ALGORITHM_VERSION": "1",
     "AI_DAILY_BUDGET": "250"
   },

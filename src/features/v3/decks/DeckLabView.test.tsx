@@ -13,7 +13,8 @@ describe("DeckLabView", () => {
     expect(screen.getByTestId("v43-dealer-lane")).toHaveTextContent("딜러 덱");
     expect(screen.getByTestId("v43-support-lane")).toHaveTextContent("서포트 덱");
     expect(screen.getByTestId("v43-forecast")).toHaveTextContent("예측 · 랭킹 사실 아님");
-    expect(screen.getByTestId("v43-forecast")).toHaveTextContent("52종 전수 분석");
+    expect(screen.getByTestId("v43-forecast")).toHaveTextContent("53종 전수 분석");
+    expect(screen.getByTestId("v59-meta-watch")).toHaveTextContent("태양 주사위 메타 관찰");
     for (let index = 1; index <= 5; index += 1) {
       const slot = screen.getByTestId(`deck-slot-${index}`);
       expect(slot).toBeInTheDocument();

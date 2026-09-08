@@ -6,18 +6,19 @@ Public site: **https://woo642778-art.github.io/dicetree/**
 
 ## V3 data model
 
-V3 replaces the old screenshot-first progression model with canonical data extracted from the supplied Random Dice 2 iOS client. The uploaded package is a modified 1.0.1 IPA and is therefore treated as untrusted input: the extractor reads archive members, serialized game tables, localization and static IL2CPP metadata only. It never launches the app, executes the client binary, loads injected dylibs, or executes bundled scripts.
+V3 replaces the old screenshot-first progression model with canonical data extracted from the supplied Random Dice 2 iOS client. The uploaded package is a modified 1.1.0 IPA and is therefore treated as untrusted input: the extractor reads archive members, serialized game tables, localization and static IL2CPP metadata only. It never launches the app, executes the client binary, loads injected dylibs, or executes bundled scripts.
 
-Current canonical coverage includes 55 dice, 239 Dice Tree nodes, 111 passive rows, 153 rune rows, enemy/wave data, Korean/English localization and mechanic evidence. Provenance is pinned by the client SHA-256 in `src/game-data/manifest.json` and documented in `docs/data/v3-client-1.0.1-extraction.md`.
+Current canonical coverage includes 56 dice, 241 Dice Tree nodes, 111 passive rows, 154 rune rows, enemy/wave data, Korean/English localization and mechanic evidence. Provenance is pinned by the client SHA-256 in `src/game-data/manifest.json` and documented in `docs/data/v3-client-1.1.0-extraction.md`.
 
 ## Dice Tree currencies
 
 Dice Tree rank costs come directly from the client arrays:
 
 - `RankUpGoldArr` → `골드` / `Gold`
-- `RankUpStoneArr` → `다이스 코어` / `Dice Core`
+- `RankUpGoodsType = NODE_STONE` → `다이스 코어` / `Dice Core`
+- `RankUpGoodsType = CORE_SOLAR` → `태양 코어` / `Solar Core`
 
-V3 does not use the old V2 `blueCard`, `redCard` or `prismCube` assumptions in the live app, affordability calculations or recommendations. Rank costs are exact client-array entries; missing levels are never extrapolated.
+V3 does not use the old V2 `blueCard`, `redCard` or `prismCube` assumptions in the live app, affordability calculations or recommendations. Rank costs are exact client-array entries, including the 1.1.0 Solar Core branch; missing levels are never extrapolated.
 
 ## Simulation confidence
 
@@ -64,4 +65,4 @@ A symbol name or serialized numeric field is evidence, not automatically a prove
 
 ## Share-state contract
 
-V3 links encode semantic `PlannerStateV3`: owned ranks, simulated target ranks, Gold/Dice Core inventory and the simulation scenario. Presentation-only state such as current language or open panel is not encoded. Malformed or incompatible links fail safely to a fresh planner state.
+V3 links encode semantic `PlannerStateV3`: owned ranks, simulated target ranks, Gold/Dice Core/Solar Core inventory and the simulation scenario. Presentation-only state such as current language or open panel is not encoded. Malformed or incompatible links fail safely to a fresh planner state.

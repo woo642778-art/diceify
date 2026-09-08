@@ -23,6 +23,8 @@ export interface SourceRefV3 {
 export interface TreeCost {
   gold: number;
   stone: number;
+  /** Solar-specific core introduced by the 1.1.0 client. */
+  solarCore?: number;
 }
 
 export interface GameManifest {

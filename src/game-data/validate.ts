@@ -1,6 +1,6 @@
 import type { CanonicalGameData, DiceTreeNodeV3, TreeCost } from "./types";
 
-const COST_KEYS = new Set(["gold", "stone"]);
+const COST_KEYS = new Set(["gold", "stone", "solarCore"]);
 
 function assertFiniteNonNegative(value: unknown, label: string): asserts value is number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
@@ -11,10 +11,13 @@ function assertFiniteNonNegative(value: unknown, label: string): asserts value i
 function validateTreeCost(cost: TreeCost, nodeId: string, rankIndex: number) {
   const keys = Object.keys(cost as unknown as Record<string, unknown>);
   if (keys.some((key) => !COST_KEYS.has(key)) || !keys.includes("gold") || !keys.includes("stone")) {
-    throw new Error(`Dice Tree costs must contain gold and stone only (${nodeId} rank ${rankIndex + 1})`);
+    throw new Error(`Dice Tree costs must contain gold and stone, with optional solarCore (${nodeId} rank ${rankIndex + 1})`);
   }
   assertFiniteNonNegative(cost.gold, `${nodeId}.costsByRank[${rankIndex}].gold`);
   assertFiniteNonNegative(cost.stone, `${nodeId}.costsByRank[${rankIndex}].stone`);
+  if (cost.solarCore !== undefined) {
+    assertFiniteNonNegative(cost.solarCore, `${nodeId}.costsByRank[${rankIndex}].solarCore`);
+  }
 }
 
 function validateNode(node: DiceTreeNodeV3, knownIds: Set<string>) {

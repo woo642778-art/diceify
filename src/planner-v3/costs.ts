@@ -11,9 +11,11 @@ export interface ResourceProjectionV3 {
 export const ZERO_TREE_COST: TreeCost = Object.freeze({ gold: 0, stone: 0 });
 
 export function addTreeCosts(left: TreeCost, right: TreeCost): TreeCost {
+  const solarCore = (left.solarCore ?? 0) + (right.solarCore ?? 0);
   return {
     gold: left.gold + right.gold,
     stone: left.stone + right.stone,
+    ...(solarCore > 0 ? { solarCore } : {}),
   };
 }
 
@@ -76,18 +78,21 @@ export function projectResources(
   inventory: PlannerStateV3["inventory"],
   spent: TreeCost,
 ): ResourceProjectionV3 {
-  const remaining = {
+  const hasSolarCore = inventory.solarCore !== undefined || spent.solarCore !== undefined;
+  const remaining: TreeCost = {
     gold: inventory.gold - spent.gold,
     stone: inventory.stone - spent.stone,
+    ...(hasSolarCore ? { solarCore: (inventory.solarCore ?? 0) - (spent.solarCore ?? 0) } : {}),
   };
-  const shortage = {
+  const shortage: TreeCost = {
     gold: Math.max(0, -remaining.gold),
     stone: Math.max(0, -remaining.stone),
+    ...(hasSolarCore ? { solarCore: Math.max(0, -(remaining.solarCore ?? 0)) } : {}),
   };
   return {
     spent: { ...spent },
     remaining,
     shortage,
-    affordable: shortage.gold === 0 && shortage.stone === 0,
+    affordable: shortage.gold === 0 && shortage.stone === 0 && (shortage.solarCore ?? 0) === 0,
   };
 }

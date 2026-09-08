@@ -30,7 +30,7 @@ class CurrencyTests(TestCase):
         self.assertNotIn("prismCube", text)
         for node in normalized["tree"]:
             for cost in node["costsByRank"]:
-                self.assertEqual(set(cost), {"gold", "stone"})
+                self.assertEqual(set(cost), {"gold", "stone", "solarCore"})
 
 
 if __name__ == "__main__":

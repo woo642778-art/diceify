@@ -63,7 +63,7 @@ function performance(input: SimulationInputV3, data: CanonicalGameData) {
 }
 
 function withinBudget(cost: TreeCost, budget: TreeCost) {
-  return cost.gold <= budget.gold && cost.stone <= budget.stone;
+  return cost.gold <= budget.gold && cost.stone <= budget.stone && (cost.solarCore ?? 0) <= (budget.solarCore ?? 0);
 }
 
 function rankKey(ranks: Record<string, number>) {
@@ -72,7 +72,7 @@ function rankKey(ranks: Record<string, number>) {
 
 function stateScore(state: BeamStateV52, targetDps: number) {
   const progress = Math.min(1, state.dps / Math.max(1, targetDps));
-  const resourceUnits = state.cost.gold / 10_000 + state.cost.stone * 12;
+  const resourceUnits = state.cost.gold / 10_000 + state.cost.stone * 12 + (state.cost.solarCore ?? 0) * 12;
   return progress * 1_000_000 + state.dps / Math.max(1, 1 + resourceUnits);
 }
 

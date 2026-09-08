@@ -328,5 +328,11 @@
     "sourceSprite": "Dice_Flower3",
     "width": 256,
     "height": 256
+  },
+  "solar": {
+    "file": "solar.webp",
+    "sourceSprite": "Dice_solar3",
+    "width": 256,
+    "height": 256
   }
 }

@@ -18,7 +18,7 @@ export interface TreeHeatmapEntryV3 {
 }
 
 function addCost(left: TreeCost, right: TreeCost): TreeCost {
-  return { gold: left.gold + right.gold, stone: left.stone + right.stone };
+  return { gold: left.gold + right.gold, stone: left.stone + right.stone, solarCore: (left.solarCore ?? 0) + (right.solarCore ?? 0) };
 }
 
 function gradeByPercentile(entries: TreeHeatmapEntryV3[]) {
@@ -31,8 +31,8 @@ function gradeByPercentile(entries: TreeHeatmapEntryV3[]) {
 
 function dominates(a: TreeHeatmapEntryV3, b: TreeHeatmapEntryV3) {
   if (a.percentGain === undefined || b.percentGain === undefined) return false;
-  const noWorse = a.percentGain >= b.percentGain && a.routeCost.gold <= b.routeCost.gold && a.routeCost.stone <= b.routeCost.stone;
-  const better = a.percentGain > b.percentGain || a.routeCost.gold < b.routeCost.gold || a.routeCost.stone < b.routeCost.stone;
+  const noWorse = a.percentGain >= b.percentGain && a.routeCost.gold <= b.routeCost.gold && a.routeCost.stone <= b.routeCost.stone && (a.routeCost.solarCore ?? 0) <= (b.routeCost.solarCore ?? 0);
+  const better = a.percentGain > b.percentGain || a.routeCost.gold < b.routeCost.gold || a.routeCost.stone < b.routeCost.stone || (a.routeCost.solarCore ?? 0) < (b.routeCost.solarCore ?? 0);
   return noWorse && better;
 }
 

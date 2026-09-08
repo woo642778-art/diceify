@@ -24,8 +24,11 @@ class NormalizeTests(TestCase):
 
     def test_rank_costs_zip_gold_and_stone_only(self):
         self.assertEqual(
-            build_tree_costs([2000, 3000], [0, 1], 2),
-            [{"gold": 2000, "stone": 0}, {"gold": 3000, "stone": 1}],
+            build_tree_costs([2000, 3000], [0, 1], [], 2),
+            [
+                {"gold": 2000, "stone": 0, "solarCore": 0},
+                {"gold": 3000, "stone": 1, "solarCore": 0},
+            ],
         )
 
     def test_predator_fixture_keeps_real_base_fields_partial_until_formula_verified(self):
@@ -48,7 +51,10 @@ class NormalizeTests(TestCase):
         self.assertEqual(node["maxRank"], 2)
         self.assertEqual(
             node["costsByRank"],
-            [{"gold": 2000, "stone": 0}, {"gold": 3000, "stone": 1}],
+            [
+                {"gold": 2000, "stone": 0, "solarCore": 0},
+                {"gold": 3000, "stone": 1, "solarCore": 0},
+            ],
         )
 
 

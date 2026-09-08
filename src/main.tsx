@@ -25,6 +25,7 @@ import "./app/polish-v55.css";
 import "./app/v55-trust-resilience.css";
 import "./app/v56-control-graph.css";
 import "./app/v58-online-platform.css";
+import "./app/v59-client-110.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

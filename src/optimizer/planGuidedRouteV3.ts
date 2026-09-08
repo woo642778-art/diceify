@@ -106,11 +106,13 @@ function roleScore(text: string, role: GuidedRouteRoleV3) {
 }
 
 function costUnits(cost: TreeCost) {
-  return Math.max(0.5, cost.gold / 2_000 + cost.stone * 8);
+  return Math.max(0.5, cost.gold / 2_000 + cost.stone * 8 + (cost.solarCore ?? 0) * 8);
 }
 
 function affordable(cost: TreeCost, remaining: TreeCost) {
-  return cost.gold <= remaining.gold && cost.stone <= remaining.stone;
+  return cost.gold <= remaining.gold
+    && cost.stone <= remaining.stone
+    && (cost.solarCore ?? 0) <= (remaining.solarCore ?? 0);
 }
 
 function rankPurchases(route: NonNullable<ReturnType<typeof planNextRankRouteV3>>) {
@@ -159,14 +161,14 @@ function validatePlan(
     }
     const cost = treeCostForRange(node, step.fromRank, step.toRank);
     recalculated = addTreeCosts(recalculated, cost);
-    if (cost.gold !== step.cost.gold || cost.stone !== step.cost.stone) exactCosts = false;
+    if (cost.gold !== step.cost.gold || cost.stone !== step.cost.stone || (cost.solarCore ?? 0) !== (step.cost.solarCore ?? 0)) exactCosts = false;
     ranks[step.nodeId] = step.toRank;
   }
-  exactCosts = exactCosts && recalculated.gold === totalCost.gold && recalculated.stone === totalCost.stone;
+  exactCosts = exactCosts && recalculated.gold === totalCost.gold && recalculated.stone === totalCost.stone && (recalculated.solarCore ?? 0) === (totalCost.solarCore ?? 0);
   return {
     prerequisitesSatisfied,
     exactCosts,
-    withinBudget: totalCost.gold <= budget.gold && totalCost.stone <= budget.stone,
+    withinBudget: totalCost.gold <= budget.gold && totalCost.stone <= budget.stone && (totalCost.solarCore ?? 0) <= (budget.solarCore ?? 0),
   };
 }
 
@@ -212,6 +214,9 @@ export function planGuidedRouteV3(data: CanonicalGameData, settings: GuidedRoute
         totalCost = addTreeCosts(totalCost, routeStep.cost);
         remaining.gold -= routeStep.cost.gold;
         remaining.stone -= routeStep.cost.stone;
+        if (remaining.solarCore !== undefined || routeStep.cost.solarCore !== undefined) {
+          remaining.solarCore = (remaining.solarCore ?? 0) - (routeStep.cost.solarCore ?? 0);
+        }
       }
     }
   }
@@ -263,6 +268,9 @@ export function planGuidedRouteV3(data: CanonicalGameData, settings: GuidedRoute
     totalCost = addTreeCosts(totalCost, chosen.route.totalCost);
     remaining.gold -= chosen.route.totalCost.gold;
     remaining.stone -= chosen.route.totalCost.stone;
+    if (remaining.solarCore !== undefined || chosen.route.totalCost.solarCore !== undefined) {
+      remaining.solarCore = (remaining.solarCore ?? 0) - (chosen.route.totalCost.solarCore ?? 0);
+    }
     targetHistory.set(chosen.node.id, (targetHistory.get(chosen.node.id) ?? 0) + 1);
   }
 

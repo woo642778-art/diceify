@@ -67,6 +67,7 @@ ICON_SPRITES = {
     "blessing": "Dice_Blessing3",
     "doom": "Dice_Doom3",
     "flower": "Dice_Flower3",
+    "solar": "Dice_solar3",
 }
 
 

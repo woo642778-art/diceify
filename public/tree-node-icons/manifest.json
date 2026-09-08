@@ -1,0 +1,814 @@
+{
+  "nodes": {
+    "1101": {
+      "file": "node-1101.webp",
+      "sourceSprite": "Passive_Nature_BulletDMG"
+    },
+    "1102": {
+      "file": "node-1102.webp",
+      "sourceSprite": "PassiveBigIcon_Nature"
+    },
+    "1103": {
+      "file": "node-1103.webp",
+      "sourceSprite": "Passive_Nature_AttackSpeed"
+    },
+    "1104": {
+      "file": "node-1104.webp",
+      "sourceSprite": "Passive_Nature_AttackSpeed"
+    },
+    "1105": {
+      "file": "node-1105.webp",
+      "sourceSprite": "Passive_Nature_CriticalRate"
+    },
+    "1106": {
+      "file": "node-1106.webp",
+      "sourceSprite": "Passive_Nature_Special"
+    },
+    "1107": {
+      "file": "node-1107.webp",
+      "sourceSprite": "Passive_Nature_Special"
+    },
+    "1108": {
+      "file": "node-1108.webp",
+      "sourceSprite": "Passive_Nature_Special"
+    },
+    "1109": {
+      "file": "node-1109.webp",
+      "sourceSprite": "PassiveBigIcon_Nature"
+    },
+    "1110": {
+      "file": "node-1110.webp",
+      "sourceSprite": "Passive_Nature_BulletDMG"
+    },
+    "1111": {
+      "file": "node-1111.webp",
+      "sourceSprite": "PassiveBigIcon_Nature"
+    },
+    "1112": {
+      "file": "node-1112.webp",
+      "sourceSprite": "PassiveBigIcon_Spup"
+    },
+    "1113": {
+      "file": "node-1113.webp",
+      "sourceSprite": "PassiveBigIcon_HPup"
+    },
+    "1114": {
+      "file": "node-1114.webp",
+      "sourceSprite": "Perk_Trash_Profile"
+    },
+    "1115": {
+      "file": "node-1115.webp",
+      "sourceSprite": "Passive_Nature_Trashcan"
+    },
+    "1201": {
+      "file": "node-1201.webp",
+      "sourceSprite": "Runenode_Fire_0"
+    },
+    "1202": {
+      "file": "node-1202.webp",
+      "sourceSprite": "Runenode_Thorn_0"
+    },
+    "1203": {
+      "file": "node-1203.webp",
+      "sourceSprite": "Runenode_Flower_0"
+    },
+    "1204": {
+      "file": "node-1204.webp",
+      "sourceSprite": "pillar_icon"
+    },
+    "1205": {
+      "file": "node-1205.webp",
+      "sourceSprite": "Runenode_Wind_0"
+    },
+    "1206": {
+      "file": "node-1206.webp",
+      "sourceSprite": "Runenode_Light_0"
+    },
+    "1207": {
+      "file": "node-1207.webp",
+      "sourceSprite": "Runenode_Ice_0"
+    },
+    "1208": {
+      "file": "node-1208.webp",
+      "sourceSprite": "Runenode_Poison_1"
+    },
+    "1301": {
+      "file": "node-1301.webp",
+      "sourceSprite": "Runenode_Fire_1"
+    },
+    "1302": {
+      "file": "node-1302.webp",
+      "sourceSprite": "Runenode_Thorn_1"
+    },
+    "1303": {
+      "file": "node-1303.webp",
+      "sourceSprite": "Runenode_Flower_1"
+    },
+    "1304": {
+      "file": "node-1304.webp",
+      "sourceSprite": "pillar_icon"
+    },
+    "1305": {
+      "file": "node-1305.webp",
+      "sourceSprite": "Runenode_Wind_1"
+    },
+    "1306": {
+      "file": "node-1306.webp",
+      "sourceSprite": "Runenode_Light_1"
+    },
+    "1307": {
+      "file": "node-1307.webp",
+      "sourceSprite": "Runenode_Ice_1"
+    },
+    "1308": {
+      "file": "node-1308.webp",
+      "sourceSprite": "Runenode_Poison_0"
+    },
+    "1401": {
+      "file": "node-1401.webp",
+      "sourceSprite": "Runenode_Fire_2"
+    },
+    "1402": {
+      "file": "node-1402.webp",
+      "sourceSprite": "Runenode_Thorn_2"
+    },
+    "1403": {
+      "file": "node-1403.webp",
+      "sourceSprite": "Runenode_Flower_2"
+    },
+    "1404": {
+      "file": "node-1404.webp",
+      "sourceSprite": "pillar_icon"
+    },
+    "1405": {
+      "file": "node-1405.webp",
+      "sourceSprite": "Runenode_Wind_2"
+    },
+    "1406": {
+      "file": "node-1406.webp",
+      "sourceSprite": "Runenode_Light_2"
+    },
+    "1407": {
+      "file": "node-1407.webp",
+      "sourceSprite": "Runenode_Ice_2"
+    },
+    "1408": {
+      "file": "node-1408.webp",
+      "sourceSprite": "Runenode_Poison_2"
+    },
+    "1601": {
+      "file": "node-1601.webp",
+      "sourceSprite": "Runenode_Sun_0"
+    },
+    "2101": {
+      "file": "node-2101.webp",
+      "sourceSprite": "Passive_Engineering_BulletDMG"
+    },
+    "2102": {
+      "file": "node-2102.webp",
+      "sourceSprite": "PassiveBigIcon_Engineering"
+    },
+    "2103": {
+      "file": "node-2103.webp",
+      "sourceSprite": "Passive_Engineering_AttackSpeed"
+    },
+    "2104": {
+      "file": "node-2104.webp",
+      "sourceSprite": "Passive_Engineering_AttackSpeed"
+    },
+    "2105": {
+      "file": "node-2105.webp",
+      "sourceSprite": "Passive_Engineering_CriticalRate"
+    },
+    "2106": {
+      "file": "node-2106.webp",
+      "sourceSprite": "Passive_Engineering_Special"
+    },
+    "2107": {
+      "file": "node-2107.webp",
+      "sourceSprite": "Passive_Engineering_Special"
+    },
+    "2108": {
+      "file": "node-2108.webp",
+      "sourceSprite": "Passive_Engineering_Special"
+    },
+    "2109": {
+      "file": "node-2109.webp",
+      "sourceSprite": "PassiveBigIcon_Engineering"
+    },
+    "2110": {
+      "file": "node-2110.webp",
+      "sourceSprite": "Passive_Engineering_BulletDMG"
+    },
+    "2111": {
+      "file": "node-2111.webp",
+      "sourceSprite": "PassiveBigIcon_Engineering"
+    },
+    "2112": {
+      "file": "node-2112.webp",
+      "sourceSprite": "PassiveBigIcon_Spup"
+    },
+    "2113": {
+      "file": "node-2113.webp",
+      "sourceSprite": "PassiveBigIcon_HPup"
+    },
+    "2114": {
+      "file": "node-2114.webp",
+      "sourceSprite": "Perk_Change_Profile"
+    },
+    "2115": {
+      "file": "node-2115.webp",
+      "sourceSprite": "Passive_Engineering_Reroll"
+    },
+    "2201": {
+      "file": "node-2201.webp",
+      "sourceSprite": "Runenode_Iron_0"
+    },
+    "2202": {
+      "file": "node-2202.webp",
+      "sourceSprite": "Runenode_Switch_0"
+    },
+    "2203": {
+      "file": "node-2203.webp",
+      "sourceSprite": "Runenode_Gear_0"
+    },
+    "2204": {
+      "file": "node-2204.webp",
+      "sourceSprite": "Runenode_Atom_0"
+    },
+    "2205": {
+      "file": "node-2205.webp",
+      "sourceSprite": "Runenode_Neon_0"
+    },
+    "2206": {
+      "file": "node-2206.webp",
+      "sourceSprite": "Runenode_Saw_0"
+    },
+    "2207": {
+      "file": "node-2207.webp",
+      "sourceSprite": "Runenode_Mine_0"
+    },
+    "2208": {
+      "file": "node-2208.webp",
+      "sourceSprite": "Runenode_Sniper_0"
+    },
+    "2209": {
+      "file": "node-2209.webp",
+      "sourceSprite": "Runenode_Ray_0"
+    },
+    "2301": {
+      "file": "node-2301.webp",
+      "sourceSprite": "Runenode_Iron_1"
+    },
+    "2302": {
+      "file": "node-2302.webp",
+      "sourceSprite": "Runenode_Switch_1"
+    },
+    "2303": {
+      "file": "node-2303.webp",
+      "sourceSprite": "Runenode_Gear_1"
+    },
+    "2304": {
+      "file": "node-2304.webp",
+      "sourceSprite": "Runenode_Atom_1"
+    },
+    "2305": {
+      "file": "node-2305.webp",
+      "sourceSprite": "Runenode_Neon_1"
+    },
+    "2306": {
+      "file": "node-2306.webp",
+      "sourceSprite": "Runenode_Saw_1"
+    },
+    "2307": {
+      "file": "node-2307.webp",
+      "sourceSprite": "Runenode_Mine_1"
+    },
+    "2308": {
+      "file": "node-2308.webp",
+      "sourceSprite": "Runenode_Sniper_1"
+    },
+    "2309": {
+      "file": "node-2309.webp",
+      "sourceSprite": "Runenode_Ray_1"
+    },
+    "2401": {
+      "file": "node-2401.webp",
+      "sourceSprite": "Runenode_Iron_2"
+    },
+    "2402": {
+      "file": "node-2402.webp",
+      "sourceSprite": "Runenode_Switch_2"
+    },
+    "2403": {
+      "file": "node-2403.webp",
+      "sourceSprite": "Runenode_Gear_2"
+    },
+    "2404": {
+      "file": "node-2404.webp",
+      "sourceSprite": "Runenode_Atom_2"
+    },
+    "2405": {
+      "file": "node-2405.webp",
+      "sourceSprite": "Runenode_Neon_2"
+    },
+    "2406": {
+      "file": "node-2406.webp",
+      "sourceSprite": "Runenode_Saw_2"
+    },
+    "2407": {
+      "file": "node-2407.webp",
+      "sourceSprite": "Runenode_Mine_2"
+    },
+    "2408": {
+      "file": "node-2408.webp",
+      "sourceSprite": "Runenode_Sniper_2"
+    },
+    "2409": {
+      "file": "node-2409.webp",
+      "sourceSprite": "Runenode_Ray_2"
+    },
+    "3101": {
+      "file": "node-3101.webp",
+      "sourceSprite": "PassiveBigIcon_Magic"
+    },
+    "3102": {
+      "file": "node-3102.webp",
+      "sourceSprite": "Passive_Magic_BulletDMG"
+    },
+    "3103": {
+      "file": "node-3103.webp",
+      "sourceSprite": "Passive_Magic_AttackSpeed"
+    },
+    "3104": {
+      "file": "node-3104.webp",
+      "sourceSprite": "Passive_Magic_AttackSpeed"
+    },
+    "3105": {
+      "file": "node-3105.webp",
+      "sourceSprite": "Passive_Magic_CriticalRate"
+    },
+    "3106": {
+      "file": "node-3106.webp",
+      "sourceSprite": "Passive_Magic_Special"
+    },
+    "3107": {
+      "file": "node-3107.webp",
+      "sourceSprite": "Passive_Magic_Special"
+    },
+    "3108": {
+      "file": "node-3108.webp",
+      "sourceSprite": "Passive_Magic_Special"
+    },
+    "3109": {
+      "file": "node-3109.webp",
+      "sourceSprite": "PassiveBigIcon_Magic"
+    },
+    "3110": {
+      "file": "node-3110.webp",
+      "sourceSprite": "Passive_Magic_BulletDMG"
+    },
+    "3111": {
+      "file": "node-3111.webp",
+      "sourceSprite": "PassiveBigIcon_Magic"
+    },
+    "3112": {
+      "file": "node-3112.webp",
+      "sourceSprite": "PassiveBigIcon_Spup"
+    },
+    "3113": {
+      "file": "node-3113.webp",
+      "sourceSprite": "PassiveBigIcon_HPup"
+    },
+    "3114": {
+      "file": "node-3114.webp",
+      "sourceSprite": "Perk_Tsunami_Profile"
+    },
+    "3115": {
+      "file": "node-3115.webp",
+      "sourceSprite": "Passive_Magic_Tsunami"
+    },
+    "3201": {
+      "file": "node-3201.webp",
+      "sourceSprite": "Runenode_Electricity_0"
+    },
+    "3202": {
+      "file": "node-3202.webp",
+      "sourceSprite": "Runenode_Resonance_0"
+    },
+    "3203": {
+      "file": "node-3203.webp",
+      "sourceSprite": "Runenode_Judgement_0"
+    },
+    "3204": {
+      "file": "node-3204.webp",
+      "sourceSprite": "Runenode_Summon_0"
+    },
+    "3205": {
+      "file": "node-3205.webp",
+      "sourceSprite": "Runenode_Combo_0"
+    },
+    "3206": {
+      "file": "node-3206.webp",
+      "sourceSprite": "Runenode_Adjust_0"
+    },
+    "3207": {
+      "file": "node-3207.webp",
+      "sourceSprite": "Runenode_Potion_0"
+    },
+    "3301": {
+      "file": "node-3301.webp",
+      "sourceSprite": "Runenode_Electricity_1"
+    },
+    "3302": {
+      "file": "node-3302.webp",
+      "sourceSprite": "Runenode_Resonance_1"
+    },
+    "3303": {
+      "file": "node-3303.webp",
+      "sourceSprite": "Runenode_Judgement_1"
+    },
+    "3304": {
+      "file": "node-3304.webp",
+      "sourceSprite": "Runenode_Summon_1"
+    },
+    "3305": {
+      "file": "node-3305.webp",
+      "sourceSprite": "Runenode_Combo_1"
+    },
+    "3306": {
+      "file": "node-3306.webp",
+      "sourceSprite": "Runenode_Adjust_1"
+    },
+    "3307": {
+      "file": "node-3307.webp",
+      "sourceSprite": "Runenode_Potion_1"
+    },
+    "3401": {
+      "file": "node-3401.webp",
+      "sourceSprite": "Runenode_Electricity_2"
+    },
+    "3402": {
+      "file": "node-3402.webp",
+      "sourceSprite": "Runenode_Resonance_2"
+    },
+    "3403": {
+      "file": "node-3403.webp",
+      "sourceSprite": "Runenode_Judgement_2"
+    },
+    "3404": {
+      "file": "node-3404.webp",
+      "sourceSprite": "Runenode_Summon_2"
+    },
+    "3405": {
+      "file": "node-3405.webp",
+      "sourceSprite": "Runenode_Combo_2"
+    },
+    "3406": {
+      "file": "node-3406.webp",
+      "sourceSprite": "Runenode_Adjust_2"
+    },
+    "3407": {
+      "file": "node-3407.webp",
+      "sourceSprite": "Runenode_Potion_2"
+    },
+    "4101": {
+      "file": "node-4101.webp",
+      "sourceSprite": "PassiveBigIcon_Guardian"
+    },
+    "4102": {
+      "file": "node-4102.webp",
+      "sourceSprite": "Passive_Guardian_BulletDMG"
+    },
+    "4103": {
+      "file": "node-4103.webp",
+      "sourceSprite": "Passive_Guardian_AttackSpeed"
+    },
+    "4104": {
+      "file": "node-4104.webp",
+      "sourceSprite": "Passive_Guardian_AttackSpeed"
+    },
+    "4105": {
+      "file": "node-4105.webp",
+      "sourceSprite": "Passive_Guardian_CriticalRate"
+    },
+    "4106": {
+      "file": "node-4106.webp",
+      "sourceSprite": "Passive_Guardian_Special"
+    },
+    "4107": {
+      "file": "node-4107.webp",
+      "sourceSprite": "Passive_Guardian_Special"
+    },
+    "4108": {
+      "file": "node-4108.webp",
+      "sourceSprite": "Passive_Guardian_Special"
+    },
+    "4109": {
+      "file": "node-4109.webp",
+      "sourceSprite": "PassiveBigIcon_Guardian"
+    },
+    "4110": {
+      "file": "node-4110.webp",
+      "sourceSprite": "Passive_Guardian_BulletDMG"
+    },
+    "4111": {
+      "file": "node-4111.webp",
+      "sourceSprite": "PassiveBigIcon_Guardian"
+    },
+    "4112": {
+      "file": "node-4112.webp",
+      "sourceSprite": "PassiveBigIcon_Spup"
+    },
+    "4113": {
+      "file": "node-4113.webp",
+      "sourceSprite": "PassiveBigIcon_HPup"
+    },
+    "4114": {
+      "file": "node-4114.webp",
+      "sourceSprite": "Perk_Cannon_Profile"
+    },
+    "4115": {
+      "file": "node-4115.webp",
+      "sourceSprite": "Passive_Guardian_Special"
+    },
+    "4201": {
+      "file": "node-4201.webp",
+      "sourceSprite": "Runenode_Bubble_0"
+    },
+    "4202": {
+      "file": "node-4202.webp",
+      "sourceSprite": "Runenode_Lock_0"
+    },
+    "4203": {
+      "file": "node-4203.webp",
+      "sourceSprite": "punch_icon"
+    },
+    "4204": {
+      "file": "node-4204.webp",
+      "sourceSprite": "Runenode_Grow_0"
+    },
+    "4205": {
+      "file": "node-4205.webp",
+      "sourceSprite": "Runenode_Execution_0"
+    },
+    "4206": {
+      "file": "node-4206.webp",
+      "sourceSprite": "Runenode_Blessing_0"
+    },
+    "4207": {
+      "file": "node-4207.webp",
+      "sourceSprite": "Runenode_Align_0"
+    },
+    "4208": {
+      "file": "node-4208.webp",
+      "sourceSprite": "Runenode_Bingo_0"
+    },
+    "4301": {
+      "file": "node-4301.webp",
+      "sourceSprite": "Runenode_Bubble_1"
+    },
+    "4302": {
+      "file": "node-4302.webp",
+      "sourceSprite": "Runenode_Lock_1"
+    },
+    "4303": {
+      "file": "node-4303.webp",
+      "sourceSprite": "punch_icon"
+    },
+    "4304": {
+      "file": "node-4304.webp",
+      "sourceSprite": "Runenode_Grow_1"
+    },
+    "4305": {
+      "file": "node-4305.webp",
+      "sourceSprite": "Runenode_Execution_1"
+    },
+    "4306": {
+      "file": "node-4306.webp",
+      "sourceSprite": "Runenode_Blessing_1"
+    },
+    "4307": {
+      "file": "node-4307.webp",
+      "sourceSprite": "Runenode_Align_1"
+    },
+    "4308": {
+      "file": "node-4308.webp",
+      "sourceSprite": "Runenode_Bingo_1"
+    },
+    "4401": {
+      "file": "node-4401.webp",
+      "sourceSprite": "Runenode_Bubble_2"
+    },
+    "4402": {
+      "file": "node-4402.webp",
+      "sourceSprite": "Runenode_Lock_2"
+    },
+    "4403": {
+      "file": "node-4403.webp",
+      "sourceSprite": "punch_icon"
+    },
+    "4404": {
+      "file": "node-4404.webp",
+      "sourceSprite": "Runenode_Grow_2"
+    },
+    "4405": {
+      "file": "node-4405.webp",
+      "sourceSprite": "Runenode_Execution_2"
+    },
+    "4406": {
+      "file": "node-4406.webp",
+      "sourceSprite": "Runenode_Blessing_2"
+    },
+    "4407": {
+      "file": "node-4407.webp",
+      "sourceSprite": "Runenode_Align_2"
+    },
+    "4408": {
+      "file": "node-4408.webp",
+      "sourceSprite": "Runenode_Bingo_2"
+    },
+    "5101": {
+      "file": "node-5101.webp",
+      "sourceSprite": "PassiveBigIcon_Invasion"
+    },
+    "5102": {
+      "file": "node-5102.webp",
+      "sourceSprite": "Passive_Invasion_BulletDMG"
+    },
+    "5103": {
+      "file": "node-5103.webp",
+      "sourceSprite": "Passive_Invasion_AttackSpeed"
+    },
+    "5104": {
+      "file": "node-5104.webp",
+      "sourceSprite": "Passive_Invasion_AttackSpeed"
+    },
+    "5105": {
+      "file": "node-5105.webp",
+      "sourceSprite": "Passive_Invasion_CriticalRate"
+    },
+    "5106": {
+      "file": "node-5106.webp",
+      "sourceSprite": "Passive_Invasion_Special"
+    },
+    "5107": {
+      "file": "node-5107.webp",
+      "sourceSprite": "Passive_Invasion_Special"
+    },
+    "5108": {
+      "file": "node-5108.webp",
+      "sourceSprite": "Passive_Invasion_Special"
+    },
+    "5109": {
+      "file": "node-5109.webp",
+      "sourceSprite": "PassiveBigIcon_Invasion"
+    },
+    "5110": {
+      "file": "node-5110.webp",
+      "sourceSprite": "Passive_Invasion_BulletDMG"
+    },
+    "5111": {
+      "file": "node-5111.webp",
+      "sourceSprite": "PassiveBigIcon_Invasion"
+    },
+    "5112": {
+      "file": "node-5112.webp",
+      "sourceSprite": "PassiveBigIcon_Spup"
+    },
+    "5113": {
+      "file": "node-5113.webp",
+      "sourceSprite": "PassiveBigIcon_HPup"
+    },
+    "5114": {
+      "file": "node-5114.webp",
+      "sourceSprite": "Perk_Lava_Profile"
+    },
+    "5115": {
+      "file": "node-5115.webp",
+      "sourceSprite": "Passive_Invasion_Special"
+    },
+    "5201": {
+      "file": "node-5201.webp",
+      "sourceSprite": "Runenode_Solitude_0"
+    },
+    "5202": {
+      "file": "node-5202.webp",
+      "sourceSprite": "Runenode_Fear_0"
+    },
+    "5203": {
+      "file": "node-5203.webp",
+      "sourceSprite": "Runenode_Tyrant_0"
+    },
+    "5204": {
+      "file": "node-5204.webp",
+      "sourceSprite": "Runenode_Doom_0"
+    },
+    "5205": {
+      "file": "node-5205.webp",
+      "sourceSprite": "Runenode_Mutation_0"
+    },
+    "5206": {
+      "file": "node-5206.webp",
+      "sourceSprite": "Runenode_Box_0"
+    },
+    "5207": {
+      "file": "node-5207.webp",
+      "sourceSprite": "Runenode_Predator_0"
+    },
+    "5208": {
+      "file": "node-5208.webp",
+      "sourceSprite": "Runenode_Death_0"
+    },
+    "5209": {
+      "file": "node-5209.webp",
+      "sourceSprite": "Runenode_Decay_0"
+    },
+    "5301": {
+      "file": "node-5301.webp",
+      "sourceSprite": "Runenode_Solitude_1"
+    },
+    "5302": {
+      "file": "node-5302.webp",
+      "sourceSprite": "Runenode_Fear_1"
+    },
+    "5303": {
+      "file": "node-5303.webp",
+      "sourceSprite": "Runenode_Tyrant_1"
+    },
+    "5304": {
+      "file": "node-5304.webp",
+      "sourceSprite": "Runenode_Doom_1"
+    },
+    "5305": {
+      "file": "node-5305.webp",
+      "sourceSprite": "Runenode_Mutation_1"
+    },
+    "5306": {
+      "file": "node-5306.webp",
+      "sourceSprite": "Runenode_Box_1"
+    },
+    "5307": {
+      "file": "node-5307.webp",
+      "sourceSprite": "Runenode_Predator_1"
+    },
+    "5308": {
+      "file": "node-5308.webp",
+      "sourceSprite": "Runenode_Death_1"
+    },
+    "5309": {
+      "file": "node-5309.webp",
+      "sourceSprite": "Runenode_Decay_1"
+    },
+    "5401": {
+      "file": "node-5401.webp",
+      "sourceSprite": "Runenode_Solitude_2"
+    },
+    "5402": {
+      "file": "node-5402.webp",
+      "sourceSprite": "Runenode_Fear_2"
+    },
+    "5403": {
+      "file": "node-5403.webp",
+      "sourceSprite": "Runenode_Tyrant_2"
+    },
+    "5404": {
+      "file": "node-5404.webp",
+      "sourceSprite": "Runenode_Doom_2"
+    },
+    "5405": {
+      "file": "node-5405.webp",
+      "sourceSprite": "Runenode_Mutation_2"
+    },
+    "5406": {
+      "file": "node-5406.webp",
+      "sourceSprite": "Runenode_Box_2"
+    },
+    "5407": {
+      "file": "node-5407.webp",
+      "sourceSprite": "Runenode_Predator_2"
+    },
+    "5408": {
+      "file": "node-5408.webp",
+      "sourceSprite": "Runenode_Death_2"
+    },
+    "5409": {
+      "file": "node-5409.webp",
+      "sourceSprite": "Runenode_Decay_2"
+    }
+  },
+  "currencies": {
+    "gold": {
+      "file": "currency-gold.webp",
+      "sourceSprite": "item_gold"
+    },
+    "stone": {
+      "file": "currency-stone.webp",
+      "sourceSprite": "node_goods_mini"
+    },
+    "solar-core": {
+      "file": "currency-solar-core.webp",
+      "sourceSprite": "item_stone_solar"
+    }
+  }
+}

@@ -95,7 +95,8 @@ describe("V3 planner shell", () => {
   it("opens account intelligence, encyclopedia, meta clusters, and universal search", () => {
     render(<I18nProvider><App /></I18nProvider>);
     fireEvent.click(screen.getByRole("button", { name: "내 계정" }));
-    expect(screen.getByTestId("v48-account-intelligence")).toHaveTextContent("빌드 건강도");
+    expect(screen.getByTestId("v48-account-intelligence")).toHaveTextContent("계정 미연결");
+    expect(screen.getByTestId("v48-account-intelligence")).not.toHaveTextContent("빌드 건강도");
     expect(screen.queryByText("계정 전체 다음 행동")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "주사위 백과" }));

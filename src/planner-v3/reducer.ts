@@ -134,6 +134,7 @@ function normalizeState(
     inventory: {
       gold: sanitizeNonNegativeInteger(state.inventory.gold, 0),
       stone: sanitizeNonNegativeInteger(state.inventory.stone, 0),
+      solarCore: sanitizeNonNegativeInteger(state.inventory.solarCore ?? 0, 0),
     },
     scenario: normalizeScenario(state.scenario, fallbackScenario),
   };
@@ -257,6 +258,7 @@ export function plannerReducerV3(
       inventory: {
         gold: sanitizeNonNegativeInteger(action.inventory.gold ?? next.inventory.gold, next.inventory.gold),
         stone: sanitizeNonNegativeInteger(action.inventory.stone ?? next.inventory.stone, next.inventory.stone),
+        solarCore: sanitizeNonNegativeInteger(action.inventory.solarCore ?? next.inventory.solarCore ?? 0, next.inventory.solarCore ?? 0),
       },
     };
   } else if (action.type === "setScenario") {

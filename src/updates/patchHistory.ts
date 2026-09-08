@@ -10,8 +10,19 @@ export interface OfficialPatchRecordV47 {
 export const RANDOM_DICE_2_APP_STORE_URL = "https://apps.apple.com/kr/app/%EB%9E%9C%EB%8D%A4-%EB%8B%A4%EC%9D%B4%EC%8A%A4-2/id6748432502?platform=ipad";
 export const RANDOM_DICE_2_GOOGLE_PLAY_URL = "https://play.google.com/store/apps/details?id=com.percent.aos.randomdice2";
 
-/** Official App Store version history checked on 2026-09-03. */
+/** Official storefront version history checked on 2026-09-08. */
 export const OFFICIAL_PATCH_HISTORY_V47: readonly OfficialPatchRecordV47[] = [
+  {
+    version: "1.1.0",
+    releasedOn: "2026-09-04",
+    title: { ko: "초월과 태양 주사위", en: "Transcendence and Solar Dice" },
+    notes: {
+      ko: ["하드 난이도 추가", "초월 시스템과 태양 주사위 추가", "균열 상점 추가", "기타 개선과 버그 수정"],
+      en: ["Hard difficulty added", "Transcendence system and Solar Dice added", "Rift Shop added", "Other improvements and bug fixes"],
+    },
+    specificity: "specific",
+    sources: [{ label: "Google Play", url: RANDOM_DICE_2_GOOGLE_PLAY_URL, checkedOn: "2026-09-08" }],
+  },
   {
     version: "1.0.3",
     releasedOn: "2026-08-21",

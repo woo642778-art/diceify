@@ -33,8 +33,9 @@ describe("AccountImportPanelV49", () => {
     const onLocalAccount = vi.fn(() => "created" as const);
     render(<AccountImportPanelV49 data={gameDataV3} locale="ko" state={state} deckIds={["predator", "adjust", "switch", "blessing", "mutation"]} onLocalAccount={onLocalAccount} onObservedImport={vi.fn()} onFullImport={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("내 계정 닉네임"), { target: { value: "랭킹에 없는 사용자" } });
-    fireEvent.click(screen.getByRole("button", { name: "불러오기·만들기" }));
-    expect(onLocalAccount).toHaveBeenCalledWith("랭킹에 없는 사용자");
+    fireEvent.change(screen.getByLabelText("PID"), { target: { value: "player-123" } });
+    fireEvent.click(screen.getByRole("button", { name: "프로필 연결" }));
+    expect(onLocalAccount).toHaveBeenCalledWith("랭킹에 없는 사용자", "player-123");
     expect(screen.getByRole("status")).toHaveTextContent("현재 입력으로 만들었습니다");
   });
 });

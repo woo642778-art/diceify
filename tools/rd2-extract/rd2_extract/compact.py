@@ -34,8 +34,8 @@ def compact_dataset(data: dict[str, object]) -> dict[str, object]:
 
     tree = [[
         node["id"], node["family"], node["kind"], node["position"]["x"], node["position"]["y"],
-        [entry["nodeId"] for entry in node["prerequisites"]], node.get("targetId"), node["maxRank"],
-        [[cost["gold"], cost["stone"]] for cost in node["costsByRank"]], node.get("passiveOrRuneRef"),
+        [[entry["nodeId"], entry["minRank"]] for entry in node["prerequisites"]], node.get("targetId"), node["maxRank"],
+        [[cost["gold"], cost["stone"], cost.get("solarCore", 0)] for cost in node["costsByRank"]], node.get("passiveOrRuneRef"),
         node.get("nameKey"), node.get("descriptionKey"),
     ] for node in data["tree"]]
 
@@ -54,7 +54,10 @@ def compact_dataset(data: dict[str, object]) -> dict[str, object]:
         item.get("speed"), item.get("sp"), item.get("trophyLevel"),
     ] for item in data["enemies"]]
 
-    referenced_keys = {"goods_node_stone", "goods_node_stone_desc", "goods_gold", "goods_gold_desc"}
+    referenced_keys = {
+        "goods_node_stone", "goods_node_stone_desc", "goods_gold", "goods_gold_desc",
+        "goods_core_solar", "goods_core_solar_desc",
+    }
     for collection in (data["dice"], data["tree"], data["passives"], data["runes"], data["enemies"]):
         for item in collection:
             for key in ("nameKey", "descriptionKey", "valueType"):

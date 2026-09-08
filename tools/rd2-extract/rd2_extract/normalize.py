@@ -44,18 +44,24 @@ def _family(group: str | None) -> str | None:
 def build_tree_costs(
     rank_up_gold_arr: list[int],
     rank_up_stone_arr: list[int],
+    rank_up_solar_core_arr: list[int],
     max_rank: int,
 ) -> list[dict[str, int]]:
     """Zip client cost arrays without extrapolation or invented resources."""
     if max_rank < 0:
         raise ValueError("max_rank must be non-negative")
-    if len(rank_up_gold_arr) not in (0, max_rank) or len(rank_up_stone_arr) not in (0, max_rank):
+    arrays = (rank_up_gold_arr, rank_up_stone_arr, rank_up_solar_core_arr)
+    if any(len(values) not in (0, max_rank) for values in arrays):
         raise ValueError(
-            "RankUpGoldArr and RankUpStoneArr must be empty or exactly match the tree rank count"
+            "Every Dice Tree cost array must be empty or exactly match the tree rank count"
         )
     gold = rank_up_gold_arr or [0] * max_rank
     stone = rank_up_stone_arr or [0] * max_rank
-    return [{"gold": gold[index], "stone": stone[index]} for index in range(max_rank)]
+    solar_core = rank_up_solar_core_arr or [0] * max_rank
+    return [
+        {"gold": gold[index], "stone": stone[index], "solarCore": solar_core[index]}
+        for index in range(max_rank)
+    ]
 
 
 def _table(resources_bytes: bytes, name: str) -> list[dict[str, str]]:
@@ -217,9 +223,18 @@ def _normalize_tree(
         node_type = row["NodeType"]
         kind_id = int(row["KindId"])
         gold = _array(row.get("RankUpGoldArr"), int)
+        goods = _array(row.get("RankUpGoodsArr"), int)
+        goods_type = row.get("RankUpGoodsType") or ""
         stone = _array(row.get("RankUpStoneArr"), int)
-        rank_count = max(len(gold), len(stone), 1)
-        costs = build_tree_costs(gold, stone, rank_count)
+        solar_core: list[int] = []
+        if goods_type == "NODE_STONE":
+            stone = goods
+        elif goods_type == "CORE_SOLAR":
+            solar_core = goods
+        elif goods_type and any(goods):
+            raise ValueError(f"Unsupported Dice Tree currency {goods_type!r} on node {row['Id']}")
+        rank_count = max(len(gold), len(stone), len(solar_core), 1)
+        costs = build_tree_costs(gold, stone, solar_core, rank_count)
 
         target_id: str | None = None
         name_key: str | None = None
@@ -257,6 +272,17 @@ def _normalize_tree(
             "PLAYER_PASSIVE": "passive",
             "PERK": "milestone",
         }.get(node_type, "connector")
+        prerequisite_ranks = {parent: 1 for parent in reverse_edges[row["Id"]]}
+        required_nodes = _array(row.get("NeedNode"), str)
+        required_ranks = _array(row.get("NeedNodeRank"), int)
+        if len(required_nodes) != len(required_ranks):
+            raise ValueError(f"NeedNode and NeedNodeRank length mismatch on node {row['Id']}")
+        for required_node, required_rank in zip(required_nodes, required_ranks):
+            if required_node in row_by_id:
+                prerequisite_ranks[required_node] = max(
+                    prerequisite_ranks.get(required_node, 0), required_rank
+                )
+
         output.append(
             {
                 "id": row["Id"],
@@ -264,8 +290,8 @@ def _normalize_tree(
                 "kind": node_kind,
                 "position": {"x": float(x_text), "y": float(y_text)},
                 "prerequisites": [
-                    {"nodeId": parent, "minRank": 1}
-                    for parent in sorted(reverse_edges[row["Id"]], key=int)
+                    {"nodeId": parent, "minRank": prerequisite_ranks[parent]}
+                    for parent in sorted(prerequisite_ranks, key=int)
                 ],
                 "targetId": target_id,
                 "maxRank": rank_count,

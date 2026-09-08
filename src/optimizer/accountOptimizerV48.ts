@@ -23,7 +23,7 @@ export interface AccountActionV48 {
 
 function dominates(left: AccountActionV48, right: AccountActionV48) {
   if (left.gainUnit !== right.gainUnit || left.gainUnit === "none") return false;
-  const noWorse = left.gain >= right.gain && left.cost.gold <= right.cost.gold && left.cost.stone <= right.cost.stone;
+  const noWorse = left.gain >= right.gain && left.cost.gold <= right.cost.gold && left.cost.stone <= right.cost.stone && (left.cost.solarCore ?? 0) <= (right.cost.solarCore ?? 0);
   const strictlyBetter = left.gain > right.gain || left.cost.gold < right.cost.gold || left.cost.stone < right.cost.stone;
   return noWorse && strictlyBetter;
 }
@@ -94,10 +94,12 @@ export function solveTargetPerformanceV48(baseInput: SimulationInputV3, data: Ca
   for (let round = 0; round < maxSteps; round += 1) {
     const recommendations = recommendTreeInvestmentsV3({ ...baseInput, treeRanks: ranks }, data, { limit: 24 }).verified
       .filter((entry) => !banned.has(entry.nodeId) && entry.percentGain !== undefined && entry.percentGain > 0)
-      .filter((entry) => totalCost.gold + entry.totalRouteCost.gold <= options.budget.gold && totalCost.stone + entry.totalRouteCost.stone <= options.budget.stone);
+      .filter((entry) => totalCost.gold + entry.totalRouteCost.gold <= options.budget.gold
+        && totalCost.stone + entry.totalRouteCost.stone <= options.budget.stone
+        && (totalCost.solarCore ?? 0) + (entry.totalRouteCost.solarCore ?? 0) <= (options.budget.solarCore ?? 0));
     const best = recommendations.sort((a, b) => {
-      const aUnits = Math.max(1, a.totalRouteCost.gold / 10_000 + a.totalRouteCost.stone * 10);
-      const bUnits = Math.max(1, b.totalRouteCost.gold / 10_000 + b.totalRouteCost.stone * 10);
+      const aUnits = Math.max(1, a.totalRouteCost.gold / 10_000 + a.totalRouteCost.stone * 10 + (a.totalRouteCost.solarCore ?? 0) * 10);
+      const bUnits = Math.max(1, b.totalRouteCost.gold / 10_000 + b.totalRouteCost.stone * 10 + (b.totalRouteCost.solarCore ?? 0) * 10);
       return (b.percentGain! / bUnits) - (a.percentGain! / aUnits) || b.percentGain! - a.percentGain!;
     })[0];
     if (!best) { stopReason = "budget"; break; }

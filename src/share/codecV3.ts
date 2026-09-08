@@ -29,6 +29,7 @@ function canonicalState(state: PlannerStateV3): PlannerStateV3 {
     inventory: {
       gold: state.inventory.gold,
       stone: state.inventory.stone,
+      ...(state.inventory.solarCore === undefined ? {} : { solarCore: state.inventory.solarCore }),
     },
     scenario: {
       diceId: state.scenario.diceId,
@@ -69,14 +70,15 @@ function object(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-function validInventory(value: unknown): value is { gold: number; stone: number } {
+function validInventory(value: unknown): value is { gold: number; stone: number; solarCore?: number } {
   const candidate = object(value);
   return Boolean(
     candidate
     && Number.isInteger(candidate.gold)
     && Number(candidate.gold) >= 0
     && Number.isInteger(candidate.stone)
-    && Number(candidate.stone) >= 0,
+    && Number(candidate.stone) >= 0
+    && (candidate.solarCore === undefined || (Number.isInteger(candidate.solarCore) && Number(candidate.solarCore) >= 0)),
   );
 }
 

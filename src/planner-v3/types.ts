@@ -18,6 +18,8 @@ export interface PlannerStateV3 {
     gold: number;
     /** Internal client lineage name for the in-game Dice Core currency. */
     stone: number;
+    /** Solar Core, introduced for Solar Dice Tree ranks in client 1.1.0. */
+    solarCore?: number;
   };
   scenario: SimulationScenarioState;
 }
