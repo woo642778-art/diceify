@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach,beforeEach,describe,expect,it,vi } from "vitest";
-import { app, handleQueue } from "../src/index";
+import { app, handleQueue, handleScheduled } from "../src/index";
 import { rebuildCommunityDeckSegment } from "../src/domain/recommendations";
 import { createApplicationSession } from "../src/security";
 import type { Env } from "../src/types";
@@ -98,6 +98,28 @@ describe("Worker + migrated SQLite integrity",()=>{
     const response=await request("/api/v1/profile","PUT",{nickname:"Owner",mode:"coop",preferredRole:"dealer",spendProfile:"free",dataConsent:false,recommendationOptOut:true},owner);
     expect(response.status,await response.clone().text()).toBe(200);
     expect(env.JOBS.send).toHaveBeenCalledWith({kind:"rebuild-community-all"});
+  });
+  it("runs conservative daily retention and recommendation recovery",async()=>{
+    const old="2025-01-01T00:00:00.000Z",expired="2026-09-01T00:00:00.000Z",future="2027-09-01T00:00:00.000Z";
+    database.sqlite.exec(`
+      INSERT INTO sessions(id_hash,user_id,csrf_hash,created_at,last_seen_at,expires_at) VALUES('expired-session','owner','csrf','${old}','${old}','${expired}');
+      INSERT INTO rate_windows(key,count,expires_at) VALUES('expired',1,1),('future',1,1999999999);
+      INSERT INTO events(id,slug,title,status,starts_at,ends_at,reward_points,created_at,updated_at) VALUES('expired-event','expired-event','Expired','active','2020','${expired}',0,'2020','2020');
+      INSERT INTO notifications(id,user_id,kind,payload_json,read_at,created_at) VALUES('old-read','owner','test','{}','${old}','${old}'),('new-unread','owner','test','{}',NULL,'${future}');
+      INSERT INTO user_sanctions(id,user_id,level,reason,starts_at,ends_at,active,created_at,updated_at) VALUES('expired-sanction','owner',1,'test','2020','${expired}',1,'2020','2020');
+      INSERT INTO community_deck_aggregates(segment_key,deck_fingerprint,sample_count,weighted_count,positive_count,negative_count,window_start,window_end,game_data_version,algorithm_version,updated_at) VALUES('coop','stale',25,25,25,0,'${old}','${expired}','1.0.1','2','${expired}');
+    `);
+    const timestamp="2026-09-08T03:15:00.000Z";
+    database.sqlite.prepare("INSERT INTO chat_rooms(id,owner_id,title,category,max_members,visibility,created_at,updated_at) VALUES('maintenance-room','owner','Room','coop',2,'public',?,?)").run(timestamp,timestamp);
+    database.sqlite.prepare("INSERT INTO matchmaking_posts(id,room_id,owner_id,kind,target,role,looking_for,deck_json,capacity,expires_at,created_at,updated_at) VALUES('expired-post','maintenance-room','owner','coop','test','dealer','support',?,2,?,?,?)").run(JSON.stringify(deck),expired,timestamp,timestamp);
+    await handleScheduled({scheduledTime:new Date(timestamp).getTime(),cron:"15 3 * * *",noRetry:vi.fn()} as unknown as ScheduledController,env,{waitUntil:vi.fn(),passThroughOnException:vi.fn()} as unknown as ExecutionContext);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM sessions WHERE id_hash='expired-session'").get()?.n).toBe(0);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM rate_windows").get()?.n).toBe(1);
+    expect(database.sqlite.prepare("SELECT status FROM events WHERE id='expired-event'").get()?.status).toBe("closed");
+    expect(database.sqlite.prepare("SELECT state FROM matchmaking_posts WHERE id='expired-post'").get()?.state).toBe("expired");
+    expect(database.sqlite.prepare("SELECT active FROM user_sanctions WHERE id='expired-sanction'").get()?.active).toBe(0);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM notifications").get()?.n).toBe(1);
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM community_deck_aggregates WHERE deck_fingerprint='stale'").get()?.n).toBe(0);
   });
   it("publishes only consented community aggregates that meet the 25-account cohort",async()=>{
     const timestamp=new Date().toISOString();

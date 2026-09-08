@@ -36,6 +36,9 @@
     ]
   },
   "ai": { "binding": "AI" },
+  "triggers": {
+    "crons": ["15 3 * * *"]
+  },
   "vars": {
     "APP_ENV": "staging",
     "APP_ORIGIN": "http://127.0.0.1:8787",

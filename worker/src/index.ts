@@ -7,6 +7,7 @@ import { appendPointLedger, redeemCatalogItem } from "./domain/points";
 import { ChatRoom } from "./chatRoom";
 import { adminReportActionSchema, appealSchema, buildSchema, eventSubmissionSchema, matchmakingSchema, profileSchema, reactionSchema, recommendationFeedbackSchema, reportSchema, roomSchema, syncSchema } from "./schemas";
 import { communitySignal, rebuildCommunityDeckSegment, rebuildCommunityDeckSegmentByMode } from "./domain/recommendations";
+import { runScheduledMaintenance } from "./domain/maintenance";
 import { cookie, cookieValue, createApplicationSession, currentSession, randomToken, sha256, verifyGoogleIdToken, verifyTurnstile } from "./security";
 import type { Env, SessionUser } from "./types";
 
@@ -657,5 +658,20 @@ async function handleQueue(batch: MessageBatch<unknown>, env: Env) {
   }
 }
 
-export { ChatRoom, app, handleQueue };
-export default { fetch: app.fetch, queue: handleQueue } satisfies ExportedHandler<Env>;
+async function handleScheduled(controller: ScheduledController, env: Env, _context: ExecutionContext) {
+  const scheduledAt = new Date(controller.scheduledTime);
+  const maintenance = await runScheduledMaintenance(env.DB,scheduledAt);
+  const recommendations = [];
+  for (const segment of ["pvp","coop","crit"] as const) {
+    recommendations.push(await rebuildCommunityDeckSegmentByMode(env.DB, {
+      segment,
+      gameDataVersion:env.GAME_DATA_VERSION,
+      algorithmVersion:env.ALGORITHM_VERSION,
+      now:scheduledAt,
+    }));
+  }
+  console.log(jsonText({ event:"scheduled_maintenance_complete",maintenance,recommendations }));
+}
+
+export { ChatRoom, app, handleQueue, handleScheduled };
+export default { fetch: app.fetch, queue: handleQueue, scheduled:handleScheduled } satisfies ExportedHandler<Env>;
