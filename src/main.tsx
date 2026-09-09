@@ -28,6 +28,7 @@ import "./app/v58-online-platform.css";
 import "./app/v59-client-110.css";
 import "./app/v60-diceify.css";
 import "./app/v60-diceify-deck.css";
+import "./app/v61-diceify-dark.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

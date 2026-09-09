@@ -68,6 +68,7 @@ import { SimulatorView } from "../simulator/SimulatorView";
 import { UpdateCenterView } from "../updates/UpdateCenterView";
 import { ProfileManagerV3 } from "../profile/ProfileManagerV3";
 import { ShareResultComposer } from "../share/ShareResultComposer";
+import { UiIcon } from "../shared/UiIcon";
 import { SharedBuildView } from "../share/SharedBuildView";
 import { NodeDetailSheet } from "../tree/NodeDetailSheet";
 import { GuidedRoutePlanner } from "../tree/GuidedRoutePlanner";
@@ -609,6 +610,13 @@ export function V3Shell() {
     setHeaderMenuOpen(false);
   };
 
+  useEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollTop = 0;
+    document.body.scrollLeft = 0;
+  }, [tab]);
+
   const openAbout = () => {
     setCreatorWelcome(false);
     setAboutOpen(true);
@@ -894,7 +902,7 @@ export function V3Shell() {
           aria-label="Diceify home"
         >
           <span className="d60-brand-word">diceify</span>
-          <span className="d60-brand-die" aria-hidden="true">•••</span>
+          <span className="d60-brand-die" aria-hidden="true"><UiIcon name="more" size={14} /></span>
         </button>
         <nav
           className="v3-nav v53-desktop-nav"
@@ -941,7 +949,7 @@ export function V3Shell() {
           </div>
         </nav>
         <div className="v3-header-actions">
-          <button className="d60-account-button" type="button" onClick={() => setTab("account")}>{tabLabel("account", locale)}</button>
+          <button className="d60-account-button" type="button" onClick={() => openTab("account")}>{tabLabel("account", locale)}</button>
           <button
             className="v53-desktop-credit"
             type="button"
@@ -955,14 +963,16 @@ export function V3Shell() {
             onClick={() => setCommandOpen(true)}
             aria-label={locale === "ko" ? "통합 검색" : "Universal search"}
           >
-            ⌕ <span>⌘K</span>
+            <UiIcon name="search" size={15} /> <span>⌘K</span>
           </button>
           <button
             className="v47-profile-button"
             type="button"
+            aria-label={locale === "ko" ? "내 프로필" : "Profiles"}
             onClick={() => setProfileOpen(true)}
           >
-            {locale === "ko" ? "내 프로필" : "Profiles"}
+            <UiIcon name="user" size={16} />
+            <span>{locale === "ko" ? "내 프로필" : "Profiles"}</span>
           </button>
           <button
             className="v47-result-button v53-desktop-action"
@@ -993,7 +1003,7 @@ export function V3Shell() {
             aria-expanded={headerMenuOpen}
             onClick={() => setHeaderMenuOpen((open) => !open)}
           >
-            •••
+            <UiIcon name="more" size={18} />
           </button>
         </div>
       </header>
@@ -1810,7 +1820,7 @@ export function V3Shell() {
         />
       )}
 
-      {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} />}
+      {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} gold={Math.max(0,resources.remaining.gold)} core={Math.max(0,resources.remaining.stone)} solarCore={Math.max(0,resources.remaining.solarCore??0)} plannedNodes={Object.keys(state.simulatedRanks).length} targetDiceId={state.scenario.diceId} activeDeckIds={activeDeckIds} />}
 
       {tab === "account" && (
         <AccountIntelligenceView
@@ -2427,9 +2437,7 @@ export function V3Shell() {
               className={tab === item ? "is-active" : ""}
               onClick={() => openTab(item)}
             >
-              <span aria-hidden="true">
-                {item === "home" ? "⌂" : item === "tree" ? "◇" : "▦"}
-              </span>
+              <span aria-hidden="true"><UiIcon name={item === "home" ? "home" : item === "tree" ? "tree" : "deck"} size={18} /></span>
               {tabLabel(item, locale)}
             </button>
           ))}
@@ -2439,7 +2447,7 @@ export function V3Shell() {
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(true)}
           >
-            <span aria-hidden="true">•••</span>
+            <span aria-hidden="true"><UiIcon name="more" size={19} /></span>
             {locale === "ko" ? "더보기" : "More"}
             {updateUnread && <i aria-hidden="true" />}
           </button>

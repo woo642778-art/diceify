@@ -160,7 +160,7 @@ test("tree pan renders before pointer release and never flashes a white document
   await expect.poll(() => transform.getAttribute("transform")).not.toBe(before);
   await expect(page.locator("html")).toHaveCSS(
     "background-color",
-    "rgb(2, 7, 6)",
+    "rgb(16, 19, 21)",
   );
   await expect(page.locator("body")).not.toHaveCSS(
     "background-color",
@@ -201,7 +201,7 @@ test("Diceify home exposes verified discovery and rejects fake player results", 
   const errors = captureBrowserErrors(page);
   await page.goto("/diceify/");
   await expect(page.getByTestId("diceify-home")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /지금 쓰는 덱/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /덱의 근거를 보고/ })).toBeVisible();
   await expect(page.getByText(/승률 예측이 아니라 동일 조합의 실제 관측 횟수/)).toBeVisible();
   await page.getByLabel("Diceify 통합 검색").fill("포식");
   await page.getByRole("button", { name: "검색", exact: true }).click();
@@ -369,7 +369,7 @@ test("V4.8 account intelligence exposes optimizer, encyclopedia, meta clusters a
   await setTreeResources(page, "300000", "60");
   await openShellTab(page, "내 계정");
   await expect(page.getByTestId("v48-account-intelligence")).toBeVisible();
-  await expect(page).toHaveURL(/\/dicetree\//);
+  await expect(page).toHaveURL(/\/diceify\//);
   await expect(page).toHaveTitle(/diceify/i);
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   await expect(page.getByText("계정 미연결")).toBeVisible();
@@ -1269,10 +1269,10 @@ test("mobile V3 tree supports touch pan and bottom-sheet node details", async ({
   expect(navButtons).toHaveLength(4);
   expect(navButtons.every(({ height }) => height >= 44)).toBe(true);
   expect(navButtons.map(({ label }) => label)).toEqual([
-    "⌂홈",
-    "▦덱 연구소",
-    "◇다이스 트리",
-    "•••더보기",
+    "홈",
+    "덱 연구소",
+    "다이스 트리",
+    "더보기",
   ]);
 
   await page.getByRole("button", { name: "90%" }).click();

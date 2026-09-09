@@ -16,7 +16,7 @@ describe("V3 planner shell", () => {
     const { container } = render(<I18nProvider><App /></I18nProvider>);
     expect(screen.getByTestId("v3-app")).toBeInTheDocument();
     expect(screen.getByTestId("diceify-home")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /지금 쓰는 덱/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /덱의 근거를 보고/ })).toBeInTheDocument();
     expect(screen.getByText(/승률 예측이 아니라 동일 조합의 실제 관측 횟수/)).toBeInTheDocument();
     expect(screen.queryByText(/승률 80%/)).not.toBeInTheDocument();
     expect(screen.getByText(/제작자 모님/)).toBeInTheDocument();
