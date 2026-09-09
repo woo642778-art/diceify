@@ -3,7 +3,7 @@
 - Status: active
 - Milestone: 9/12 (75%)
 - Updated: 2026-09-09T00:32:56-07:00
-- Current work: Random Dice 2 client 1.1.0 is normalized into the live planner with Solar Dice, Solar Core, 241-node topology, exact prerequisite ranks, and client-derived node/currency art. Account analysis remains blank until a nickname/PID profile or verified snapshot is supplied, and public ranking deck references never create or replace an account identity. Desktop/mobile regression, 6x mobile zoom, account persistence, starter unlock, route purchase, and Solar branch checks pass.
+- Current work: Random Dice 2 client 1.1.0 is normalized into the live planner with Solar Dice, Solar Core, 241-node topology, exact prerequisite ranks, and client-derived node/currency art. Account analysis remains blank until a nickname/PID profile or verified snapshot is supplied, and public ranking deck references never create or replace an account identity. Desktop/mobile regression, 6x mobile zoom, account persistence, starter unlock, route purchase, and Solar branch checks pass. CI browser regression runs serially to avoid a reproduced Chromium multi-process SIGSEGV without reducing scenario coverage.
 
 ## Log
 - 2026-09-04T15:02:55 | 1/12 | Repository, deployment, compatibility and performance baseline mapped; gesture rendering bottleneck fixed and measured.
