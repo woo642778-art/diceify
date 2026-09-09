@@ -55,6 +55,19 @@ export const roomSchema = z.object({
   turnstileToken: z.string().max(4096).optional(),
 }).strict();
 
+export const guildSchema = z.object({
+  name: z.string().trim().min(2).max(30),
+  guildCode: z.string().trim().min(2).max(40).regex(/^[\p{L}\p{N}_#.-]+$/u),
+  recruiting: z.boolean(),
+  activeHours: z.string().trim().max(80).default(""),
+  description: z.string().trim().min(10).max(500),
+  contact: z.string().trim().min(2).max(160),
+}).strict();
+
+export const guildSignalSchema = z.object({
+  kind: z.enum(["save", "inquiry"]),
+}).strict();
+
 export const matchmakingSchema = z.object({
   kind: z.enum(["coop", "crit"]),
   target: z.string().trim().min(1).max(80),

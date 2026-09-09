@@ -26,6 +26,8 @@ import "./app/v55-trust-resilience.css";
 import "./app/v56-control-graph.css";
 import "./app/v58-online-platform.css";
 import "./app/v59-client-110.css";
+import "./app/v60-diceify.css";
+import "./app/v60-diceify-deck.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

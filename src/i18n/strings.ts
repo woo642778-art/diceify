@@ -1,7 +1,7 @@
 export type Locale = "ko" | "en";
 
 const ko: Record<string, string> = {
-  "app.title": "랜덤다이스2 다이스 트리 플래너",
+  "app.title": "diceify · 랜덤다이스 2",
   "app.subtitle": "검증된 데이터만 계산하고, 미확인 노드는 추정하지 않습니다.",
   "action.undo": "실행 취소",
   "action.redo": "다시 실행",
@@ -93,7 +93,7 @@ const ko: Record<string, string> = {
 };
 
 const en: Record<string, string> = {
-  "app.title": "Random Dice 2 Tree Planner",
+  "app.title": "diceify · Random Dice 2",
   "app.subtitle": "Only verified data is calculated. Hidden nodes are never guessed.",
   "action.undo": "Undo", "action.redo": "Redo", "action.reset": "Reset", "action.share": "Share", "action.copy": "Copy", "action.copied": "Link copied",
   "action.save": "Save", "action.load": "Load", "action.delete": "Delete", "action.close": "Close", "action.apply": "Apply upgrade",

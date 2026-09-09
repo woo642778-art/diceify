@@ -36,7 +36,7 @@ export function ProfileManagerV3({ locale, state, activeDeckIds, deckGoal, spend
         ? `${result.imported}개 추가 · ${result.updated}개 업데이트 · ${result.skipped}개는 현재 사본 유지`
         : `${result.imported} added · ${result.updated} updated · ${result.skipped} kept locally`);
     } catch {
-      setBackupNotice(locale === "ko" ? "DiceTree 프로필 백업 파일을 읽지 못했습니다." : "This is not a valid DiceTree profile backup.");
+      setBackupNotice(locale === "ko" ? "diceify 프로필 백업 파일을 읽지 못했습니다." : "This is not a valid diceify profile backup.");
     } finally {
       if (backupInputRef.current) backupInputRef.current.value = "";
     }

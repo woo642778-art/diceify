@@ -224,7 +224,7 @@ export function OnlinePlatformView({ locale, state, deckIds,onRestore,onDeckChan
 
   return <main className="v58-online" data-testid="v58-online-platform">
     <header className="v58-online-hero">
-      <div><small>ONLINE PLATFORM · {health ? `${health.environment.toUpperCase()} · DATA ${health.gameDataVersion}` : "OFFLINE COMPATIBILITY"}</small><h1>{locale === "ko" ? "DiceTree 온라인" : "DiceTree Online"}</h1><p>{locale === "ko" ? "로컬 계산은 그대로 유지하면서 빌드 공유, 실시간 연구방, 파티 모집과 클라우드 저장을 연결합니다." : "Keep local calculation while adding build sharing, realtime research rooms, matchmaking, and cloud saves."}</p></div>
+      <div><small>ONLINE PLATFORM · {health ? `${health.environment.toUpperCase()} · DATA ${health.gameDataVersion}` : "OFFLINE COMPATIBILITY"}</small><h1>{locale === "ko" ? "diceify 온라인" : "diceify Online"}</h1><p>{locale === "ko" ? "로컬 계산은 그대로 유지하면서 빌드 공유, 실시간 연구방, 파티 모집과 클라우드 저장을 연결합니다." : "Keep local calculation while adding build sharing, realtime research rooms, matchmaking, and cloud saves."}</p></div>
       <section className={`v58-session-card is-${status}`}>
         {status === "loading" && <p>{locale === "ko" ? "플랫폼 상태 확인 중" : "Checking platform"}</p>}
         {status === "unavailable" && <><strong>{locale === "ko" ? "로컬 모드" : "Local mode"}</strong><p>{locale === "ko" ? "이 배포 주소에는 온라인 Worker가 연결되지 않았습니다. 계산기와 저장 프로필은 정상 작동합니다." : "This origin has no online Worker. The calculator and local profiles remain available."}</p><button type="button" onClick={() => void refresh()}>{locale === "ko" ? "다시 확인" : "Retry"}</button></>}

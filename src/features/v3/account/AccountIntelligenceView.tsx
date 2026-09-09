@@ -111,6 +111,8 @@ export function AccountIntelligenceView({
   onOpenSimulator: () => void;
 }) {
   const [section, setSection] = useState<AccountSection>("overview");
+  // A local identity or schema-valid JSON is not a server-authenticated account.
+  const [manualAnalysis, setManualAnalysis] = useState(false);
   const [targetGain, setTargetGain] = useState(
     Math.max(1, twin.goal.targetGainPercent ?? 10),
   );
@@ -175,7 +177,6 @@ export function AccountIntelligenceView({
   const primaryDeck = twin.decks.find((deck) => deck.id === twin.primaryDeckId);
   const connectedIdentity =
     twin.identity?.source === "observed-ranking" ? undefined : twin.identity;
-  const accountConnected = Boolean(connectedIdentity);
 
   const patchGoal = (patch: Partial<UserDigitalTwinV48["goal"]>) =>
     onTwinChange({ ...twin, goal: { ...twin.goal, ...patch } });
@@ -200,14 +201,14 @@ export function AccountIntelligenceView({
     <main className="v48-account" data-testid="v48-account-intelligence">
       <header className="v48-account-hero">
         <div>
-          <small>ACCOUNT DIGITAL TWIN · V4.9</small>
+          <small>ACCOUNT · DICEIFY</small>
           <h1>
             {locale === "ko" ? "내 계정 인텔리전스" : "Account Intelligence"}
           </h1>
           <p>
             {locale === "ko"
-              ? "트리, 덱, 재화, 목표를 하나의 상태로 묶어 다음 행동을 계산합니다."
-              : "One state connects your tree, deck, resources, and goals to calculate the next action."}
+              ? "현재 게임 서버에서 조회한 계정 정보가 없습니다. 닉네임·PID를 저장해도 게임 데이터가 조회되거나 계정 점수가 생성되지 않습니다."
+              : "No account data has been retrieved from the game server. Saving a nickname or PID does not fetch game data or generate an account score."}
           </p>
           {connectedIdentity && (
             <div className="v49-identity-chip">
@@ -221,12 +222,12 @@ export function AccountIntelligenceView({
               <em>
                 {connectedIdentity.source === "verified-import"
                   ? locale === "ko"
-                    ? "검증된 가져오기"
-                    : "Verified import"
+                    ? "사용자 입력 JSON · 서버 미검증"
+                    : "User-supplied JSON · not server verified"
                   : connectedIdentity.source === "local-profile"
                     ? locale === "ko"
-                      ? "이 브라우저 계정"
-                      : "Browser account"
+                      ? "로컬 계산 프로필 · 서버 미연결"
+                      : "Local planner profile · not connected"
                     : locale === "ko"
                       ? "관측 랭킹"
                       : "Observed ranking"}
@@ -235,30 +236,34 @@ export function AccountIntelligenceView({
           )}
         </div>
         <div
-          className={`v48-health-orbit ${accountConnected ? "" : "is-disconnected"}`}
-          data-score={accountConnected ? health.score : undefined}
-          style={
-            {
-              "--score": accountConnected ? health.score : 0,
-            } as React.CSSProperties
-          }
+          className="v48-health-orbit is-disconnected"
         >
-          <strong>{accountConnected ? health.score : "—"}</strong>
+          <strong>-</strong>
           <span>
-            {accountConnected
-              ? locale === "ko"
-                ? "입력 상태 평가"
-                : "Input-state score"
-              : locale === "ko"
+            {locale === "ko"
                 ? "계정 미연결"
                 : "Not connected"}
           </span>
           <Confidence
-            value={accountConnected ? health.confidence : "unavailable"}
+            value="unavailable"
             locale={locale}
           />
         </div>
       </header>
+
+      <section className="v48-command-card" data-testid="manual-analysis-control">
+        <h2>{locale === "ko" ? "수동 계산 도구" : "Manual planning tools"}</h2>
+        <p>
+          {locale === "ko"
+            ? "아래 도구는 사이트에 직접 입력한 트리·덱·재화로 계산합니다. 실제 계정 조회나 게임 공식 평가가 아닙니다. 기본 입력이 내 보유 현황과 일치하는지 먼저 확인하세요."
+            : "These tools calculate from the tree, deck, and resources entered on this site, not a retrieved account or official game rating. Check the inputs against your holdings first."}
+        </p>
+        <button type="button" aria-pressed={manualAnalysis} onClick={() => setManualAnalysis(!manualAnalysis)}>
+          {manualAnalysis
+            ? locale === "ko" ? "수동 계산 닫기" : "Close manual calculations"
+            : locale === "ko" ? "수동 계산 열기" : "Open manual calculations"}
+        </button>
+      </section>
 
       <nav
         className="v48-account-nav"
@@ -306,7 +311,7 @@ export function AccountIntelligenceView({
             onFullImport={onFullAccountImport}
             onScreenshotImport={onScreenshotImport}
           />
-          {!accountConnected && (
+          {!manualAnalysis && (
             <section
               className="v48-command-card v59-account-locked"
               data-testid="v59-account-locked"
@@ -319,17 +324,17 @@ export function AccountIntelligenceView({
               </header>
               <h2>
                 {locale === "ko"
-                  ? "계정 상태를 먼저 연결하세요"
-                  : "Connect an account state first"}
+                  ? "실제 계정 조회는 아직 사용할 수 없습니다"
+                  : "Live account lookup is not yet available"}
               </h2>
               <p>
                 {locale === "ko"
-                  ? "닉네임·PID로 브라우저 프로필을 만들거나, 스크린샷·검증 JSON으로 실제 트리와 재화를 입력한 뒤에만 평가 점수와 추천을 계산합니다."
-                  : "Create a browser profile with nickname and PID, or import screenshots or validated JSON. Scores and recommendations appear only after account state is connected."}
+                  ? "현재 사이트에 연결 가능한 공개 프로필 API가 확인되지 않았습니다. 로컬 저장, 랭킹 참고, JSON·스크린샷 가져오기는 서버 조회를 대신하지 않습니다. 수동 계산은 위 버튼에서 별도로 열 수 있습니다."
+                  : "A usable public profile API has not been confirmed. Local storage, ranking references, JSON, and screenshots do not substitute for server lookup. Open manual calculations separately using the button above."}
               </p>
             </section>
           )}
-          {accountConnected && (
+          {manualAnalysis && (
             <>
               <section className="v48-command-card is-primary">
                 <header>
@@ -502,7 +507,7 @@ export function AccountIntelligenceView({
         </div>
       )}
 
-      {section === "optimizer" && !accountConnected && (
+      {section === "optimizer" && !manualAnalysis && (
         <div className="v48-optimizer-layout">
           <section className="v48-command-card v59-account-locked">
             <header>
@@ -513,21 +518,21 @@ export function AccountIntelligenceView({
             </header>
             <h2>
               {locale === "ko"
-                ? "대시보드에서 계정을 먼저 연결하세요"
-                : "Connect an account from the dashboard first"}
+                ? "수동 계산을 먼저 여세요"
+                : "Open manual calculations first"}
             </h2>
             <p>
               {locale === "ko"
-                ? "기본 예시 상태를 실제 계정처럼 평가하지 않습니다. 입력 근거가 생기면 목표 역산과 다음 행동 계산을 활성화합니다."
-                : "The starter example is never evaluated as a real account. Target solvers activate after an account state is supplied."}
+                ? "위의 수동 계산 버튼을 누르면 사이트 입력값으로 최적화를 실행할 수 있습니다. 계정 조회 결과가 아닙니다."
+                : "Use the manual calculations button above to optimize the site inputs. These are not account lookup results."}
             </p>
             <button type="button" onClick={() => setSection("overview")}>
-              {locale === "ko" ? "계정 연결로 이동" : "Go to account connect"}
+              {locale === "ko" ? "입력 도구로 이동" : "Go to input tools"}
             </button>
           </section>
         </div>
       )}
-      {section === "optimizer" && accountConnected && (
+      {section === "optimizer" && manualAnalysis && (
         <div className="v48-optimizer-layout">
           <OptimizationSuiteV52
             data={data}

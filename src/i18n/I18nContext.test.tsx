@@ -15,9 +15,9 @@ beforeEach(() => localStorage.clear());
 
 it("changes display language without touching semantic planner data", () => {
   render(<I18nProvider><Probe semanticRank={3} /></I18nProvider>);
-  expect(screen.getByTestId("title")).toHaveTextContent("랜덤다이스2");
+  expect(screen.getByTestId("title")).toHaveTextContent("diceify · 랜덤다이스 2");
   expect(screen.getByTestId("semantic-rank")).toHaveTextContent("3");
   fireEvent.click(screen.getByRole("button", { name: "switch" }));
-  expect(screen.getByTestId("title")).toHaveTextContent("Random Dice 2 Tree Planner");
+  expect(screen.getByTestId("title")).toHaveTextContent("diceify · Random Dice 2");
   expect(screen.getByTestId("semantic-rank")).toHaveTextContent("3");
 });

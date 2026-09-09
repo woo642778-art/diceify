@@ -94,6 +94,30 @@ describe("Worker + migrated SQLite integrity",()=>{
     expect((await request("/api/v1/me","GET",undefined,owner)).status).toBe(401);
     expect(env.JOBS.send).toHaveBeenCalledWith({kind:"rebuild-community-all"});
   });
+  it("registers real guild listings and ranks only authenticated site signals",async()=>{
+    const input={name:"주사위 연구회",guildCode:"RD2-SEOUL",recruiting:true,activeHours:"평일 20시",description:"협동 덱을 함께 연구하고 기록하는 길드입니다.",contact:"오픈채팅 문의"};
+    const created=await request("/api/v1/guilds","POST",input,owner);
+    expect(created.status,await created.clone().text()).toBe(201);
+    const guildId=(await created.json() as {id:string}).id;
+    const publicList=await request("/api/v1/guilds?sort=popular");
+    expect(publicList.status).toBe(200);
+    expect(await publicList.json()).toMatchObject({rankingBasis:"authenticated Diceify saves x2 + inquiries x3",guilds:[{id:guildId,name:"주사위 연구회",saves:0,inquiries:0}]});
+    expect((await request(`/api/v1/guilds/${guildId}/signals`,"POST",{kind:"save"},other)).status).toBe(200);
+    expect((await request(`/api/v1/guilds/${guildId}/signals`,"POST",{kind:"inquiry"},other)).status).toBe(200);
+    const ranked=await request("/api/v1/guilds?sort=recruiting&query=연구");
+    expect(await ranked.json()).toMatchObject({guilds:[{saves:1,inquiries:1}]});
+    expect((await request(`/api/v1/guilds/${guildId}/signals`,"POST",{kind:"save"},other)).status).toBe(200);
+    expect(await (await request("/api/v1/guilds")).json()).toMatchObject({guilds:[{saves:0,inquiries:1}]});
+    expect((await request(`/api/v1/guilds/${guildId}/signals`,"POST",{kind:"save"},owner)).status).toBe(409);
+    const duplicate=await request("/api/v1/guilds","POST",{...input,guildCode:"SECOND"},other);
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toEqual({error:"guild_name_taken"});
+    const exported=await request("/api/v1/me/export","GET",undefined,other);
+    expect(await exported.json()).toMatchObject({guildSignals:[{guild_id:guildId,user_id:"other",kind:"inquiry"}]});
+    expect((await request("/api/v1/me","DELETE",undefined,owner)).status).toBe(200);
+    expect(await (await request("/api/v1/guilds")).json()).toMatchObject({guilds:[]});
+    expect(database.sqlite.prepare("SELECT COUNT(*) AS n FROM guild_signals WHERE guild_id=?").get(guildId)?.n).toBe(0);
+  });
   it("queues privacy-safe aggregate rebuilding when recommendation consent changes",async()=>{
     const response=await request("/api/v1/profile","PUT",{nickname:"Owner",mode:"coop",preferredRole:"dealer",spendProfile:"free",dataConsent:false,recommendationOptOut:true},owner);
     expect(response.status,await response.clone().text()).toBe(200);

@@ -131,6 +131,7 @@ test("tree pan renders before pointer release and never flashes a white document
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   const canvas = page.getByTestId("v3-tree-canvas");
   const transform = page.getByTestId("v3-tree-transform");
   const box = await canvas.boundingBox();
@@ -196,11 +197,40 @@ test("online platform preserves an honest local fallback when no Worker is attac
   expect(errors).toEqual([]);
 });
 
+test("Diceify home exposes verified discovery and rejects fake player results", async ({ page, isMobile }) => {
+  const errors = captureBrowserErrors(page);
+  await page.goto("/dicetree/");
+  await expect(page.getByTestId("diceify-home")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /지금 쓰는 덱/ })).toBeVisible();
+  await expect(page.getByText(/승률 예측이 아니라 동일 조합의 실제 관측 횟수/)).toBeVisible();
+  await page.getByLabel("Diceify 통합 검색").fill("포식");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  await expect(page.getByTestId("diceify-dice-catalog")).toBeVisible();
+  await openShellTab(page, "홈");
+  await page.getByLabel("Diceify 통합 검색").fill("unknown-player-123");
+  await page.getByRole("button", { name: "검색", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("실시간 조회 공급자가 연결되지 않았습니다");
+  await page.screenshot({ path: `test-results/qa-diceify-home-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true });
+  expect(errors).toEqual([]);
+});
+
+test("Diceify guild directory never substitutes fake listings for a missing service", async ({ page, isMobile }) => {
+  const errors = captureBrowserErrors(page);
+  await page.goto("/dicetree/");
+  await openShellTab(page, "길드");
+  await expect(page.getByTestId("diceify-guild-directory")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "길드 서버가 아직 연결되지 않았습니다" })).toBeVisible();
+  await expect(page.getByText("화면에 가짜 길드를 채우지 않습니다.")).toBeVisible();
+  await page.screenshot({ path: `test-results/qa-diceify-guild-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true });
+  expect(errors).toEqual([]);
+});
+
 test("personal lab saves what-if scenarios without changing the current account", async ({
   page,
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   const original = await readTreeResources(page);
   await openShellTab(page, "온라인");
   await page.getByRole("button", { name: "내 연구 · What-if" }).click();
@@ -230,6 +260,7 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await expect(page.getByTestId("v3-tree-view")).toBeVisible();
   await expect(page.getByTestId("v3-tree-canvas")).toBeVisible();
   await expect(page.getByLabel("다이스 트리 재화")).toContainText("골드");
@@ -243,11 +274,14 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({
       .getByRole("dialog", { name: "더보기" })
       .getByRole("button", { name: "제작자 모님" })
       .click();
-  } else await page.getByRole("button", { name: "제작자 모님" }).click();
+  } else {
+    await page.getByRole("button", { name: "더 많은 작업" }).click();
+    await page.getByRole("menuitem", { name: "제작자 및 사이트 정보" }).click();
+  }
   const about = page.getByRole("dialog", { name: "제작자 모님" });
   await expect(about).toContainText("비공식 팬 도구");
   await expect(
-    about.getByRole("link", { name: "GitHub에서 DiceTree 보기" }),
+    about.getByRole("link", { name: "GitHub에서 diceify 보기" }),
   ).toHaveAttribute("href", "https://github.com/woo642778-art/dicetree");
   await page.screenshot({
     path: `test-results/qa-v54-about-${isMobile ? "mobile" : "desktop"}.png`,
@@ -312,12 +346,9 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({
   const shared = await context.newPage();
   const sharedErrors = captureBrowserErrors(shared);
   await shared.goto(sharedUrl);
-  await expect
-    .poll(async () => (await readTreeResources(shared)).gold)
-    .toBe(sharedGold);
-  await expect
-    .poll(async () => (await readTreeResources(shared)).core)
-    .toBe(sharedCore);
+  await openShellTab(shared, "다이스 트리");
+  await expect.poll(async () => (await readTreeResources(shared)).gold).toBe(sharedGold);
+  await expect.poll(async () => (await readTreeResources(shared)).core).toBe(sharedCore);
   await expect(await focusTreeNode(shared, "1205")).toHaveAttribute(
     "data-simulated-rank",
     simulatedRank!,
@@ -338,13 +369,23 @@ test("V4.8 account intelligence exposes optimizer, encyclopedia, meta clusters a
   await setTreeResources(page, "300000", "60");
   await openShellTab(page, "내 계정");
   await expect(page.getByTestId("v48-account-intelligence")).toBeVisible();
+  await expect(page).toHaveURL(/\/dicetree\//);
+  await expect(page).toHaveTitle(/diceify/i);
+  await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   await expect(page.getByText("계정 미연결")).toBeVisible();
   await expect(page.getByText("빌드 건강도")).toHaveCount(0);
-  await page.getByLabel("내 계정 닉네임").fill("E2E 계정");
+  await page.getByLabel("로컬 프로필 이름").fill("E2E 계정");
   await page.getByLabel("PID").fill("e2e-player-001");
-  await page.getByRole("button", { name: "프로필 연결" }).click();
+  await page.getByRole("button", { name: "로컬 저장·불러오기" }).click();
   await expect(page.getByText("E2E 계정").first()).toBeVisible();
-  await expect(page.getByText("입력 상태 평가")).toBeVisible();
+  await expect(page.locator(".v48-health-orbit")).not.toHaveAttribute("data-score");
+  await expect(page.getByTestId("v59-account-locked")).toBeVisible();
+  await page.screenshot({
+    path: `/tmp/rd2-account-not-queried-${isMobile ? "mobile" : "desktop"}.png`,
+    fullPage: false,
+  });
+  await page.getByRole("button", { name: "수동 계산 열기" }).click();
+  await expect(page.locator(".v48-health-orbit")).not.toHaveAttribute("data-score");
   await page.screenshot({
     path: `test-results/qa-v48-account-${isMobile ? "mobile" : "desktop"}.png`,
     fullPage: false,
@@ -392,6 +433,7 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
 
   const hub = page.getByTestId("v46-tree-core");
   const nature = page.getByTestId("v46-family-count-nature");
@@ -437,6 +479,7 @@ test("V4.8.1 starts with base dice unlocked, buys the next nodes and deducts the
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "3000", "10");
 
   await expect(page.getByTestId("v3-node-1001")).toHaveAttribute(
@@ -478,6 +521,7 @@ test("V4.8.1 protects starter ownership and unlocks its child without spending r
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "0", "10");
 
   await expect(page.getByTestId("v3-node-1001")).toHaveAttribute(
@@ -511,6 +555,7 @@ test("V5 virtual routes work at zero balance and nickname accounts reload outsid
   );
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
 
   const core = page.getByRole("spinbutton", { name: "남은 다이스 코어" });
   await expect(core).toHaveValue("0");
@@ -527,9 +572,9 @@ test("V5 virtual routes work at zero balance and nickname accounts reload outsid
   );
 
   await openShellTab(page, "내 계정");
-  await page.getByLabel("내 계정 닉네임").fill("랭킹밖테스트유저");
+  await page.getByLabel("로컬 프로필 이름").fill("랭킹밖테스트유저");
   await page.getByLabel("PID").fill("outside-ranking-001");
-  await page.getByRole("button", { name: "프로필 연결" }).click();
+  await page.getByRole("button", { name: "로컬 저장·불러오기" }).click();
   await expect(page.locator(".v49-import-message")).toContainText(
     "현재 입력으로 만들었습니다",
   );
@@ -555,14 +600,15 @@ test("V5 virtual routes work at zero balance and nickname accounts reload outsid
   });
   await page.reload();
   await openShellTab(page, "내 계정");
-  await page.getByLabel("내 계정 닉네임").fill("랭킹밖테스트유저");
+  await page.getByLabel("로컬 프로필 이름").fill("랭킹밖테스트유저");
   await page.getByLabel("PID").fill("legacy-profile-001");
-  await page.getByRole("button", { name: "프로필 연결" }).click();
+  await page.getByRole("button", { name: "로컬 저장·불러오기" }).click();
   await expect(page.locator(".v49-import-message")).toContainText(
     "저장된 트리·덱·재화를 불러왔습니다",
   );
   await expect(page.getByText("PID legacy-profile-001")).toBeVisible();
-  await expect(page.getByText("계정 미연결")).toHaveCount(0);
+  await expect(page.getByText("계정 미연결")).toBeVisible();
+  await expect(page.locator(".v48-health-orbit")).not.toHaveAttribute("data-score");
   await openShellTab(page, "다이스 트리");
   await expect(page.getByRole("spinbutton", { name: "남은 골드" })).toHaveValue(
     "12345",
@@ -624,6 +670,7 @@ test("V4 route planner applies prerequisites as one preview and supports cancell
   );
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await page.getByRole("spinbutton", { name: "남은 골드" }).fill("9999999");
   await page.getByRole("spinbutton", { name: "남은 다이스 코어" }).fill("9999");
   await (await focusTreeNode(page, "1205")).click();
@@ -677,6 +724,7 @@ test("V4.4 Tree search focuses normalized effect terms and drag distance follows
   );
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
 
   const search = page.getByRole("textbox", { name: "트리 검색" });
   const transform = page.getByTestId("v3-tree-transform");
@@ -734,6 +782,7 @@ test("V5.5 mobile tree search remains dark, populated and usable at 6x zoom", as
   );
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await page.getByRole("button", { name: "검색", exact: true }).click();
   const search = page.getByRole("textbox", { name: "모바일 트리 검색" });
   await search.fill("공속");
@@ -783,9 +832,9 @@ test("V5.5 first visit introduces creator Monim and persists dismissal", async (
   await page.goto("/dicetree/?welcome-test=1");
   const dialog = page.getByRole("dialog", { name: "제작자 모님" });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText("WELCOME TO DICETREE");
+  await expect(dialog).toContainText("WELCOME TO DICEIFY");
   await expect(
-    dialog.getByRole("link", { name: "GitHub에서 DiceTree 보기" }),
+    dialog.getByRole("link", { name: "GitHub에서 diceify 보기" }),
   ).toHaveAttribute("href", "https://github.com/woo642778-art/dicetree");
   await dialog.getByRole("button", { name: "사이트 정보 닫기" }).click();
   await page.reload();
@@ -945,6 +994,7 @@ test("V3 real Wind Dice Tree path changes the selected dice tree stat without fa
   );
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await page.getByRole("spinbutton", { name: "남은 골드" }).fill("9999999");
   await page.getByRole("spinbutton", { name: "남은 다이스 코어" }).fill("9999");
 
@@ -974,7 +1024,7 @@ test("V3 real Wind Dice Tree path changes the selected dice tree stat without fa
   expect(errors).toEqual([]);
 });
 
-test("V4.3 Deck Lab separates ranked dealer and support decks from forecasts and opens Simulator", async ({
+test("Diceify Deck Lab separates observed compositions from manual scores and opens Simulator", async ({
   page,
   isMobile,
 }) => {
@@ -982,31 +1032,20 @@ test("V4.3 Deck Lab separates ranked dealer and support decks from forecasts and
   await page.goto("/dicetree/");
   await openShellTab(page, "덱 연구소");
   await expect(page.getByTestId("v4-deck-lab")).toBeVisible();
-  await expect(page.getByTestId("v4-meta-status")).toContainText(
-    "2026.08.16 협동 랭킹 스냅샷",
-  );
-  await expect(page.getByTestId("v43-ranking-snapshot")).toContainText(
-    "105개 랭킹 덱",
-  );
-  await expect(page.getByTestId("v43-dealer-lane")).toContainText("딜러 덱");
-  await expect(page.getByTestId("v43-support-lane")).toContainText("서포트 덱");
-  await expect(page.getByTestId("v43-forecast")).toContainText(
-    "차기 메타 후보",
-  );
-  await expect(page.getByTestId("v43-forecast")).toContainText(
-    "예측 · 랭킹 사실 아님",
-  );
-  for (let index = 1; index <= 5; index += 1)
-    await expect(page.getByTestId(`deck-slot-${index}`)).toBeVisible();
-  await expect(page.locator(".v4-deck-grid img[data-dice-id]")).toHaveCount(5);
+  await expect(page.getByTestId("v4-deck-lab")).toContainText("15장 · 1~105위");
+  await expect(page.getByText("보존 스냅샷 · 실시간 아님")).toBeVisible();
+  await expect(page.getByText(/승률과 사용률은 공식 API로 확인되지 않아 표시하지 않습니다/)).toBeVisible();
+  await expect(page.locator(".d60-deck-detail-dice img[data-dice-id]")).toHaveCount(5);
+  await expect(page.locator(".d60-observed-decks > button").first()).toBeVisible();
+  await expect(page.locator("body")).not.toContainText("차기 메타 후보");
   await expect(page.locator("body")).not.toContainText(/IPA/i);
   await page.getByLabel("플레이 역할").selectOption("support");
-  await page.getByLabel("투자 성향").selectOption("invested");
+  await page.getByLabel("비교 성향").selectOption("invested");
   await page.screenshot({
     path: `test-results/qa-v4-deck-lab-${isMobile ? "mobile" : "desktop"}.png`,
     fullPage: true,
   });
-  await page.getByRole("button", { name: "주 딜러 시뮬레이션" }).click();
+  await page.getByRole("button", { name: "주 딜러 시뮬레이터에서 열기" }).click();
   await expect(page.getByTestId("v3-simulator-view")).toBeVisible();
   await expect(page.getByTestId("stat-practical-dps")).not.toHaveText("—");
   expect(errors).toEqual([]);
@@ -1123,6 +1162,7 @@ test("V4.5 guided route provides a complete justified affordable plan and applie
 }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "9999999", "999");
   if (isMobile)
     await page.getByRole("button", { name: "필터", exact: true }).click();
@@ -1159,6 +1199,7 @@ test("V4.5 guided route provides a complete justified affordable plan and applie
 test("V3 malformed share state fails safely", async ({ page }) => {
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/#b=v3.not-valid");
+  await openShellTab(page, "다이스 트리");
   await expect(page.getByRole("status")).toBeVisible();
   await expect(page.getByTestId("v3-tree-canvas")).toBeVisible();
   expect(errors).toEqual([]);
@@ -1171,6 +1212,7 @@ test("mobile V3 tree supports touch pan and bottom-sheet node details", async ({
   test.skip(!isMobile, "mobile project only");
   const errors = captureBrowserErrors(page);
   await page.goto("/dicetree/");
+  await openShellTab(page, "다이스 트리");
   await expect(page.getByRole("button", { name: "내 프로필" })).toBeVisible();
   const canvas = page.getByTestId("v3-tree-canvas");
   const transform = page.getByTestId("v3-tree-transform");
@@ -1227,9 +1269,9 @@ test("mobile V3 tree supports touch pan and bottom-sheet node details", async ({
   expect(navButtons).toHaveLength(4);
   expect(navButtons.every(({ height }) => height >= 44)).toBe(true);
   expect(navButtons.map(({ label }) => label)).toEqual([
-    "●내 계정",
+    "⌂홈",
+    "▦덱 연구소",
     "◇다이스 트리",
-    "▶시뮬레이터",
     "•••더보기",
   ]);
 
@@ -1308,7 +1350,8 @@ test("V4.7 saves local profiles and creates a dedicated shared result page", asy
   await page.getByRole("button", { name: "현재 상태 저장" }).click();
   await expect(page.getByTestId("v47-profile-panel")).toContainText("본계정");
   await page.getByRole("button", { name: "닫기" }).click();
-  await page.getByRole("button", { name: "결과 카드" }).click();
+  await page.getByRole("button", { name: "더 많은 작업" }).click();
+  await page.getByRole("menuitem", { name: "결과 카드 만들기" }).click();
   await page.getByLabel("빌드 이름").fill("포식 성장 빌드");
   await page.getByLabel("작성자 메모").fill("초반 안정성을 우선한 세팅");
   await page.getByRole("button", { name: "결과 페이지 링크 복사" }).click();

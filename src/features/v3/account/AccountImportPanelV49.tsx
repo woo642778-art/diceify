@@ -42,8 +42,8 @@ export function AccountImportPanelV49({
     if (!clean) {
       setMessage(
         locale === "ko"
-          ? "사용할 닉네임을 입력하세요."
-          : "Enter a nickname to use.",
+          ? "저장할 로컬 프로필 이름을 입력하세요."
+          : "Enter a local planner profile name.",
       );
       return;
     }
@@ -52,11 +52,11 @@ export function AccountImportPanelV49({
     setMessage(
       result === "loaded"
         ? locale === "ko"
-          ? `${clean} 계정에 저장된 트리·덱·재화를 불러왔습니다.`
-          : `Loaded the saved tree, deck, and resources for ${clean}.`
+          ? `${clean} 로컬 프로필에 저장된 트리·덱·재화를 불러왔습니다. 서버 조회는 수행하지 않았습니다.`
+          : `Loaded the locally saved tree, deck, and resources for ${clean}. No server lookup was performed.`
         : locale === "ko"
-          ? `${clean} 계정을 현재 입력으로 만들었습니다. 이 브라우저에서 다시 검색할 수 있습니다.`
-          : `Created ${clean} from the current inputs. It can be found again in this browser.`,
+          ? `${clean} 로컬 프로필을 현재 입력으로 만들었습니다. 서버 조회는 수행하지 않았습니다.`
+          : `Saved ${clean} as a local planner profile. No server lookup was performed.`,
     );
   };
   const searchRanking = () => {
@@ -66,8 +66,8 @@ export function AccountImportPanelV49({
       result
         ? undefined
         : locale === "ko"
-          ? "보존된 공개 랭킹 자료에는 없습니다. 위의 내 닉네임 계정에서는 어떤 닉네임이든 만들거나 다시 불러올 수 있습니다."
-          : "Not present in the preserved public ranking data. Use My nickname account above to create or reload any nickname.",
+          ? "보존된 공개 랭킹 자료에는 없습니다. 실제 계정의 존재 여부를 확인한 결과가 아닙니다."
+          : "Not in the preserved ranking data. This does not establish whether a game account exists.",
     );
   };
   const importJson = () => {
@@ -83,38 +83,40 @@ export function AccountImportPanelV49({
     <section className="v49-account-import" data-testid="v49-account-import">
       <header>
         <div>
-          <small>ACCOUNT CONNECT · V4.9</small>
-          <h2>{locale === "ko" ? "내 계정 가져오기" : "Import my account"}</h2>
+          <small>MANUAL INPUT · LOCAL STORAGE</small>
+          <h2>{locale === "ko" ? "수동 입력·로컬 저장" : "Manual input and local storage"}</h2>
         </div>
         <span>{locale === "ko" ? "로컬 처리" : "Local processing"}</span>
       </header>
       <div className="v49-account-columns">
         <article className="is-local-account">
           <h3>
-            {locale === "ko" ? "브라우저 계정 연결" : "Connect browser account"}
+            {locale === "ko" ? "계산 프로필 저장·불러오기" : "Save or load a planner profile"}
           </h3>
           <p>
             {locale === "ko"
-              ? "닉네임과 선택적 PID를 현재 입력한 트리·덱·재화에 연결합니다. 게임 서버 자동 조회가 아니라 사용자가 검증할 수 있는 로컬 프로필입니다."
-              : "Attach a nickname and optional PID to the tree, deck, and resources entered here. This is a verifiable local profile, not a game-server lookup."}
+              ? "현재 사이트 입력에 이름을 붙여 이 브라우저에 저장합니다. PID는 메모로만 보관하며, 게임 계정을 검색하거나 인증하지 않습니다."
+              : "Name and save the current site inputs in this browser. The PID is only a note; this does not search for or authenticate a game account."}
           </p>
           <div>
             <input
               aria-label={
-                locale === "ko" ? "내 계정 닉네임" : "My account nickname"
+                locale === "ko" ? "로컬 프로필 이름" : "Local profile name"
               }
               value={nickname}
               onChange={(event) => setNickname(event.target.value)}
-              placeholder={locale === "ko" ? "게임 닉네임" : "Game nickname"}
+              placeholder={locale === "ko" ? "예: 협동 덱 계산" : "Example: Co-op plan"}
+              maxLength={32}
             />
             <input
               aria-label="PID"
               value={pid}
               onChange={(event) => setPid(event.target.value)}
-              placeholder={locale === "ko" ? "PID 선택 입력" : "Optional PID"}
+              placeholder={locale === "ko" ? "PID 메모 (선택, 조회 안 함)" : "PID note (optional, not queried)"}
+              maxLength={64}
             />
             <button type="button" onClick={openLocalAccount}>
-              {locale === "ko" ? "프로필 연결" : "Connect profile"}
+              {locale === "ko" ? "로컬 저장·불러오기" : "Save or load locally"}
             </button>
           </div>
           <small>
@@ -171,13 +173,13 @@ export function AccountImportPanelV49({
         <article>
           <h3>
             {locale === "ko"
-              ? "전체 계정 스냅샷 가져오기"
-              : "Import a full account snapshot"}
+              ? "수동 JSON 가져오기"
+              : "Import manual JSON"}
           </h3>
           <p>
             {locale === "ko"
-              ? "현재 사이트 입력으로 편집 가능한 JSON을 만든 뒤, PID·레벨을 보완해 검증 적용할 수 있습니다."
-              : "Create an editable JSON from the current site state, add PID or levels, then validate and apply it."}
+              ? "사이트 입력으로 JSON을 만들거나 직접 작성한 JSON을 적용합니다. 형식·값 검사만 수행하며, 게임 서버의 계정 데이터라는 보증은 아닙니다."
+              : "Create JSON from the site inputs or apply your own. Validation checks structure and values only, not whether the data is genuine game-server account data."}
           </p>
           <div className="v49-snapshot-actions">
             <button
@@ -223,8 +225,8 @@ export function AccountImportPanelV49({
       )}
       <footer>
         {locale === "ko"
-          ? "공개된 전체 유저 계정 조회 API를 확인하지 못했기 때문에 서버 스펙을 임의로 만들지 않습니다. 내 닉네임 계정은 사용자가 입력한 사이트 상태를 이 브라우저에 저장하며, 공개 랭킹 결과는 덱 참고 자료일 뿐입니다."
-          : "No public all-player account API was found, so server specs are never fabricated. My nickname account stores the site state entered by the user in this browser; public ranking results are deck references only."}
+          ? "이 도구들은 사용자 입력과 보존된 참고 자료만 사용합니다. 실제 게임 계정 조회 기능은 아직 구현되지 않았습니다."
+          : "These tools use user inputs and preserved references only. Live game account lookup has not been implemented."}
       </footer>
     </section>
   );

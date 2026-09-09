@@ -1,4 +1,4 @@
-const CACHE = "dicetree-v55-shell";
+const CACHE = "diceify-v60-shell";
 const SHELL = ["/dicetree/", "/dicetree/manifest.webmanifest", "/dicetree/app-icon.svg"];
 
 self.addEventListener("install", (event) => {

@@ -30,7 +30,7 @@ export function createCommunityContributionV55(data: CanonicalGameData, input: C
 export function communityIssueUrlV55(input: CommunityContributionInputV55): string {
   const type = input.kind === "data-correction" ? "data correction" : input.kind === "ranking-snapshot" ? "ranking snapshot" : "patch note";
   const body = [
-    "## DiceTree community data submission",
+    "## diceify community data submission",
     `- Type: ${type}`,
     `- Observed on: ${input.observedOn || "not provided"}`,
     `- Source: ${input.sourceUrl.trim() || "not provided"}`,

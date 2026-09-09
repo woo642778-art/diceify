@@ -78,6 +78,10 @@ import {
   TreeCanvasV3,
 } from "../tree/TreeCanvasV3";
 import { AccountIntelligenceView } from "../account/AccountIntelligenceView";
+import { DiceifyHome } from "../diceify/DiceifyHome";
+import { DiceCatalogV60 } from "../diceify/DiceCatalogV60";
+import { RankingDirectoryV60 } from "../diceify/RankingDirectoryV60";
+import { GuildDirectoryV60 } from "../diceify/GuildDirectoryV60";
 import { TierMakerView } from "../tier/TierMakerView";
 import { PwaUpdatePromptV55 } from "./PwaUpdatePromptV55";
 import { PerformanceDiagnosticsV55 } from "./PerformanceDiagnosticsV55";
@@ -92,10 +96,14 @@ const OnlinePlatformView = lazy(() =>
 );
 
 type Tab =
+  | "home"
   | "account"
   | "tree"
   | "simulator"
   | "decks"
+  | "dice"
+  | "rankings"
+  | "guild"
   | "community"
   | "tier"
   | "compare"
@@ -107,20 +115,25 @@ type TreeViewCommandV53 = {
 };
 
 const PRIMARY_TABS: Tab[] = [
-  "account",
-  "tree",
-  "simulator",
+  "home",
   "decks",
-  "community",
+  "dice",
+  "tree",
+  "rankings",
+  "guild",
 ];
-const TOOL_TABS: Tab[] = ["tier", "compare", "shop", "updates"];
+const TOOL_TABS: Tab[] = ["simulator", "community", "tier", "compare", "shop", "updates"];
 
 function tabLabel(tab: Tab, locale: "ko" | "en") {
   const labels: Record<Tab, { ko: string; en: string }> = {
+    home: { ko: "홈", en: "Home" },
     account: { ko: "내 계정", en: "My Account" },
     tree: { ko: "다이스 트리", en: "Dice Tree" },
     simulator: { ko: "시뮬레이터", en: "Simulator" },
     decks: { ko: "덱 연구소", en: "Deck Lab" },
+    dice: { ko: "주사위", en: "Dice" },
+    rankings: { ko: "랭킹", en: "Rankings" },
+    guild: { ko: "길드", en: "Guilds" },
     community: { ko: "온라인", en: "Online" },
     tier: { ko: "티어 메이커", en: "Tier Maker" },
     compare: { ko: "비교", en: "Compare" },
@@ -254,7 +267,7 @@ export function V3Shell() {
   const { locale, setLocale } = useI18n();
   const mobileLayout = useMobileLayoutV53();
   const [accountSeed] = useState(loadAccountTwin);
-  const [tab, setTab] = useState<Tab>("tree");
+  const [tab, setTab] = useState<Tab>("home");
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [guidedRouteOpen, setGuidedRouteOpen] = useState(false);
   const [familyFilter, setFamilyFilter] = useState<DiceFamilyV3 | "all">("all");
@@ -497,10 +510,14 @@ export function V3Shell() {
     const normalized = normalizeTreeSearchText(commandQuery.trim());
     const tabs: Array<{ id: string; kind: "tab"; tab: Tab; label: string }> = (
       [
+        "home",
         "account",
         "tree",
         "simulator",
         "decks",
+        "dice",
+        "rankings",
+        "guild",
         "community",
         "tier",
         "compare",
@@ -511,42 +528,7 @@ export function V3Shell() {
       id: `tab:${target}`,
       kind: "tab",
       tab: target,
-      label:
-        target === "account"
-          ? locale === "ko"
-            ? "내 계정 인텔리전스"
-            : "Account Intelligence"
-          : target === "tree"
-            ? locale === "ko"
-              ? "다이스 트리"
-              : "Dice Tree"
-            : target === "simulator"
-              ? locale === "ko"
-                ? "시뮬레이터"
-                : "Simulator"
-              : target === "decks"
-                ? locale === "ko"
-                  ? "덱 연구소"
-                  : "Deck Lab"
-                : target === "community"
-                  ? locale === "ko"
-                    ? "온라인 플랫폼"
-                    : "Online Platform"
-                  : target === "tier"
-                    ? locale === "ko"
-                      ? "티어 메이커"
-                      : "Tier Maker"
-                    : target === "compare"
-                      ? locale === "ko"
-                        ? "비교"
-                        : "Compare"
-                      : target === "shop"
-                        ? locale === "ko"
-                          ? "구매 효율"
-                          : "Purchase Value"
-                        : locale === "ko"
-                          ? "업데이트"
-                          : "Updates",
+      label: tabLabel(target,locale),
     }));
     const dice = selectableDice.map((entry) => ({
       id: `dice:${entry.id}`,
@@ -757,8 +739,8 @@ export function V3Shell() {
     });
     setShareNotice(
       locale === "ko"
-        ? `${nickname} 계정을 현재 상태로 만들고 이 브라우저에 저장했습니다.`
-        : `Created ${nickname} from the current state and saved it in this browser.`,
+        ? `${nickname} 로컬 계산 프로필을 이 브라우저에 저장했습니다. 서버 조회는 수행하지 않았습니다.`
+        : `Saved ${nickname} as a local planner profile. No server lookup was performed.`,
     );
     return "created";
   };
@@ -807,8 +789,8 @@ export function V3Shell() {
     setTab("tree");
     setShareNotice(
       locale === "ko"
-        ? `${account.identity.nickname} 계정 스냅샷을 검증해 적용했습니다.`
-        : `Validated and applied ${account.identity.nickname}'s account snapshot.`,
+        ? `${account.identity.nickname} JSON의 형식·값을 검사해 적용했습니다. 서버에서 확인한 계정 데이터는 아닙니다.`
+        : `Checked and applied ${account.identity.nickname}'s JSON structure and values. This is not server-verified account data.`,
     );
   };
 
@@ -908,19 +890,11 @@ export function V3Shell() {
         <button
           className="v3-brand"
           type="button"
-          onClick={() => setTab("account")}
-          aria-label="Random Dice 2 V3"
+          onClick={() => setTab("home")}
+          aria-label="Diceify home"
         >
-          <span className="v3-brand-mark">
-            <b>RD</b>
-            <i>2</i>
-          </span>
-          <span>
-            <strong>RANDOM DICE 2</strong>
-            <small>
-              {locale === "ko" ? "다이스 트리 연구소" : "Dice Tree Lab"}
-            </small>
-          </span>
+          <span className="d60-brand-word">diceify</span>
+          <span className="d60-brand-die" aria-hidden="true">•••</span>
         </button>
         <nav
           className="v3-nav v53-desktop-nav"
@@ -967,6 +941,7 @@ export function V3Shell() {
           </div>
         </nav>
         <div className="v3-header-actions">
+          <button className="d60-account-button" type="button" onClick={() => setTab("account")}>{tabLabel("account", locale)}</button>
           <button
             className="v53-desktop-credit"
             type="button"
@@ -1626,8 +1601,8 @@ export function V3Shell() {
               <div>
                 <small>
                   {creatorWelcome
-                    ? "WELCOME TO DICETREE"
-                    : "DICETREE · COMMUNITY TOOL"}
+                    ? "WELCOME TO DICEIFY"
+                    : "DICEIFY · COMMUNITY TOOL"}
                 </small>
                 <h2 id="v54-about-title">
                   {locale === "ko" ? "제작자 모님" : "Created by Monim"}
@@ -1693,13 +1668,13 @@ export function V3Shell() {
               rel="noreferrer"
             >
               {locale === "ko"
-                ? "GitHub에서 DiceTree 보기"
-                : "View DiceTree on GitHub"}
+                ? "GitHub에서 diceify 보기"
+                : "View diceify on GitHub"}
             </a>
             <small className="v54-about-disclaimer">
               {locale === "ko"
-                ? "DiceTree는 게임 제작사와 제휴되지 않은 비공식 팬 프로젝트입니다."
-                : "DiceTree is an unofficial fan project and is not affiliated with the game's publisher."}
+                ? "diceify는 게임 제작사와 제휴되지 않은 비공식 팬 프로젝트입니다."
+                : "diceify is an unofficial fan project and is not affiliated with the game's publisher."}
             </small>
           </section>
         </div>
@@ -1835,6 +1810,8 @@ export function V3Shell() {
         />
       )}
 
+      {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} />}
+
       {tab === "account" && (
         <AccountIntelligenceView
           data={gameDataV3}
@@ -1854,6 +1831,12 @@ export function V3Shell() {
           onOpenSimulator={() => setTab("simulator")}
         />
       )}
+
+      {tab === "dice" && <DiceCatalogV60 data={gameDataV3} locale={locale} onSimulate={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("simulator");}} />}
+
+      {tab === "rankings" && <RankingDirectoryV60 data={gameDataV3} locale={locale} onApply={(ids)=>{setActiveDeckIds(ids);setTab("decks");}} />}
+
+      {tab === "guild" && <GuildDirectoryV60 locale={locale} />}
 
       {tab === "tree" && (
         <main
@@ -2437,7 +2420,7 @@ export function V3Shell() {
             locale === "ko" ? "모바일 주요 화면" : "Mobile primary views"
           }
         >
-          {(["account", "tree", "simulator"] as Tab[]).map((item) => (
+          {(["home", "decks", "tree"] as Tab[]).map((item) => (
             <button
               key={item}
               type="button"
@@ -2445,14 +2428,14 @@ export function V3Shell() {
               onClick={() => openTab(item)}
             >
               <span aria-hidden="true">
-                {item === "account" ? "●" : item === "tree" ? "◇" : "▶"}
+                {item === "home" ? "⌂" : item === "tree" ? "◇" : "▦"}
               </span>
               {tabLabel(item, locale)}
             </button>
           ))}
           <button
             type="button"
-            className={`${TOOL_TABS.includes(tab) || tab === "decks" || tab === "community" ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`}
+            className={`${TOOL_TABS.includes(tab) || ["dice","rankings","guild","account"].includes(tab) ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`}
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(true)}
           >
@@ -2487,7 +2470,7 @@ export function V3Shell() {
               </button>
             </header>
             <div className="v53-more-grid">
-              {(["decks", "community", ...TOOL_TABS] as Tab[]).map((item) => (
+              {(["dice", "rankings", "guild", "account", ...TOOL_TABS] as Tab[]).map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -2501,10 +2484,22 @@ export function V3Shell() {
                     )}
                   </strong>
                   <small>
-                    {item === "decks"
+                    {item === "dice"
                       ? locale === "ko"
-                        ? "덱 진단과 추천"
-                        : "Deck diagnosis"
+                        ? "인게임 주사위 정보"
+                        : "In-game dice data"
+                      : item === "rankings"
+                        ? locale === "ko"
+                          ? "관측 협동 랭킹"
+                          : "Observed co-op ranking"
+                        : item === "guild"
+                          ? locale === "ko"
+                            ? "등록과 사이트 추천"
+                            : "Listings and site picks"
+                          : item === "account"
+                            ? locale === "ko"
+                              ? "계정 연결 상태"
+                              : "Account connection"
                       : item === "community"
                         ? locale === "ko"
                           ? "빌드·연구방·파티"

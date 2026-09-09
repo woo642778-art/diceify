@@ -1,12 +1,12 @@
 {
-  "name": "Random Dice 2 Dice Tree Lab",
-  "short_name": "DiceTree",
-  "description": "Dice Tree planning, deck analysis, simulation and account optimization",
+  "name": "diceify for Random Dice 2",
+  "short_name": "diceify",
+  "description": "Random Dice 2 deck research, dice data, tree planning, rankings, and guild directory",
   "start_url": "/dicetree/",
   "scope": "/dicetree/",
   "display": "standalone",
-  "background_color": "#100d1c",
-  "theme_color": "#24153a",
+  "background_color": "#ffffff",
+  "theme_color": "#1268f3",
   "lang": "ko",
   "icons": [
     { "src": "/dicetree/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }

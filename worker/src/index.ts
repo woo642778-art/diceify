@@ -5,7 +5,7 @@ import { parseJson, consumeQuota } from "./http";
 import { phase2Routes } from "./routes/phase2";
 import { appendPointLedger, redeemCatalogItem } from "./domain/points";
 import { ChatRoom } from "./chatRoom";
-import { adminReportActionSchema, appealSchema, buildSchema, eventSubmissionSchema, matchmakingSchema, profileSchema, reactionSchema, recommendationFeedbackSchema, reportSchema, roomSchema, syncSchema } from "./schemas";
+import { adminReportActionSchema, appealSchema, buildSchema, eventSubmissionSchema, guildSchema, guildSignalSchema, matchmakingSchema, profileSchema, reactionSchema, recommendationFeedbackSchema, reportSchema, roomSchema, syncSchema } from "./schemas";
 import { communitySignal, rebuildCommunityDeckSegment, rebuildCommunityDeckSegmentByMode } from "./domain/recommendations";
 import { runScheduledMaintenance } from "./domain/maintenance";
 import { cookie, cookieValue, createApplicationSession, currentSession, randomToken, sha256, verifyGoogleIdToken, verifyTurnstile } from "./security";
@@ -115,6 +115,7 @@ const publicGetRoutes = new Set([
   "/api/v1/health",
   "/api/v1/builds/public",
   "/api/v1/community/rooms",
+  "/api/v1/guilds",
   "/api/v1/matchmaking/open",
   "/api/v1/events/active",
   "/api/v1/points/catalog",
@@ -313,6 +314,49 @@ app.get("/api/v1/community/rooms", async (c) => {
   return c.json({ rooms: rows.results });
 });
 
+app.get("/api/v1/guilds", async (c) => {
+  const sort = c.req.query("sort") ?? "popular";
+  if (!["popular", "new", "recruiting"].includes(sort)) return c.json({ error: "invalid_sort" }, 400);
+  const query = (c.req.query("query") ?? "").normalize("NFKC").trim().toLocaleLowerCase().slice(0, 40);
+  const order = sort === "new"
+    ? "g.created_at DESC"
+    : "(COUNT(DISTINCT CASE WHEN s.kind='inquiry' THEN s.user_id END)*3 + COUNT(DISTINCT CASE WHEN s.kind='save' THEN s.user_id END)*2) DESC, g.updated_at DESC";
+  const rows = await c.env.DB.prepare(`SELECT g.id,g.name,g.guild_code,g.recruiting,g.active_hours,g.description,g.contact,g.created_at,g.updated_at,
+    COUNT(DISTINCT CASE WHEN s.kind='save' THEN s.user_id END) AS saves,
+    COUNT(DISTINCT CASE WHEN s.kind='inquiry' THEN s.user_id END) AS inquiries
+    FROM guilds g LEFT JOIN guild_signals s ON s.guild_id=g.id
+    WHERE g.state='published' AND (?!='recruiting' OR g.recruiting=1) AND (?='' OR g.normalized_name LIKE ?)
+    GROUP BY g.id ORDER BY ${order} LIMIT 50`).bind(sort, query, `%${query}%`).all();
+  return c.json({ guilds: rows.results, sort, rankingBasis: "authenticated Diceify saves x2 + inquiries x3" });
+});
+
+app.post("/api/v1/guilds", async (c) => {
+  const user = c.get("user");
+  const input = await parseJson(c.req.raw, guildSchema);
+  const timestamp = now();
+  const normalized = input.name.normalize("NFKC").toLocaleLowerCase();
+  const existing = await c.env.DB.prepare("SELECT id FROM guilds WHERE owner_id=?").bind(user.id).first<{ id:string }>();
+  const guildId = existing?.id ?? id();
+  const nameOwner = await c.env.DB.prepare("SELECT owner_id FROM guilds WHERE normalized_name=?").bind(normalized).first<{ owner_id:string }>();
+  if (nameOwner && nameOwner.owner_id !== user.id) return c.json({ error:"guild_name_taken" },409);
+  await c.env.DB.prepare(`INSERT INTO guilds(id,owner_id,name,normalized_name,guild_code,recruiting,active_hours,description,contact,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(owner_id) DO UPDATE SET name=excluded.name,normalized_name=excluded.normalized_name,guild_code=excluded.guild_code,recruiting=excluded.recruiting,active_hours=excluded.active_hours,description=excluded.description,contact=excluded.contact,state='published',updated_at=excluded.updated_at`)
+    .bind(guildId,user.id,input.name,normalized,input.guildCode,Number(input.recruiting),input.activeHours,input.description,input.contact,timestamp,timestamp).run();
+  return c.json({ id:guildId,updatedAt:timestamp }, existing ? 200 : 201);
+});
+
+app.post("/api/v1/guilds/:guildId/signals", async (c) => {
+  const user = c.get("user");
+  const input = await parseJson(c.req.raw, guildSignalSchema);
+  const guild = await c.env.DB.prepare("SELECT id,owner_id FROM guilds WHERE id=? AND state='published'").bind(c.req.param("guildId")).first<{ id:string;owner_id:string }>();
+  if (!guild) return c.json({ error:"guild_not_found" },404);
+  if (guild.owner_id === user.id) return c.json({ error:"own_guild_signal" },409);
+  const existing = await c.env.DB.prepare("SELECT 1 AS found FROM guild_signals WHERE guild_id=? AND user_id=? AND kind=?").bind(guild.id,user.id,input.kind).first();
+  if (existing && input.kind === "save") await c.env.DB.prepare("DELETE FROM guild_signals WHERE guild_id=? AND user_id=? AND kind='save'").bind(guild.id,user.id).run();
+  else if (!existing) await c.env.DB.prepare("INSERT INTO guild_signals(guild_id,user_id,kind,created_at) VALUES(?,?,?,?)").bind(guild.id,user.id,input.kind,now()).run();
+  return c.json({ active:input.kind === "save" ? !existing : true });
+});
+
 app.post("/api/v1/community/rooms", async (c) => {
   const user = c.get("user");
   const input = await parseJson(c.req.raw, roomSchema);
@@ -502,6 +546,8 @@ app.get("/api/v1/me/export", async (c) => {
   const tables = ["profiles","user_preferences","planner_snapshots","saved_builds","point_ledger","event_submissions","matchmaking_posts","notifications"] as const;
   const output: Record<string, unknown> = { exportedAt: now(), userId: user.id };
   for (const table of tables) output[table] = (await c.env.DB.prepare(`SELECT * FROM ${table} WHERE ${table === "profiles" || table === "user_preferences" ? "user_id" : table === "saved_builds" || table === "matchmaking_posts" ? "owner_id" : "user_id"}=?`).bind(user.id).all()).results;
+  output.guilds = (await c.env.DB.prepare("SELECT * FROM guilds WHERE owner_id=?").bind(user.id).all()).results;
+  output.guildSignals = (await c.env.DB.prepare("SELECT * FROM guild_signals WHERE user_id=?").bind(user.id).all()).results;
   return c.json(output);
 });
 
@@ -519,6 +565,8 @@ app.delete("/api/v1/me", async (c) => {
     c.env.DB.prepare("DELETE FROM chat_reactions WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("UPDATE chat_messages SET user_id=NULL WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("DELETE FROM matchmaking_posts WHERE owner_id=?").bind(user.id),
+    c.env.DB.prepare("DELETE FROM guilds WHERE owner_id=?").bind(user.id),
+    c.env.DB.prepare("DELETE FROM guild_signals WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("UPDATE recommendation_events SET user_id=NULL WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("DELETE FROM notifications WHERE user_id=?").bind(user.id),
     c.env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(user.id),

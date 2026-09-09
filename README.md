@@ -1,4 +1,4 @@
-# Random Dice 2 Tree Planner V3
+# diceify for Random Dice 2
 
 A public, login-free Random Dice 2 Dice Tree planner and condition-based combat simulator backed by statically extracted client data.
 
