@@ -113,6 +113,76 @@ describe("V3 planner shell", () => {
     expect(screen.getByTestId("v3-simulator-view")).toBeInTheDocument();
   });
 
+  it("keeps a public ranking deck separate from a connected account", () => {
+    render(<I18nProvider><App /></I18nProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "내 계정" }));
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "공개 랭킹 닉네임 또는 순위" }),
+      { target: { value: "#8" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 참고 찾기" }));
+    fireEvent.click(screen.getByRole("button", { name: "관측 덱만 적용" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "관측 랭킹 덱만 적용",
+    );
+    expect(screen.getByTestId("v48-account-intelligence")).toHaveTextContent(
+      "계정 미연결",
+    );
+    expect(screen.queryByText("입력 상태 평가")).not.toBeInTheDocument();
+  });
+
+  it("does not replace a connected browser identity with a ranking reference", () => {
+    render(<I18nProvider><App /></I18nProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "내 계정" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "내 계정 닉네임" }), {
+      target: { value: "내 실제 입력" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "PID" }), {
+      target: { value: "verified-local-001" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "프로필 연결" }));
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "공개 랭킹 닉네임 또는 순위" }),
+      { target: { value: "#8" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "랭킹 참고 찾기" }));
+    fireEvent.click(screen.getByRole("button", { name: "관측 덱만 적용" }));
+
+    expect(screen.getAllByText("내 실제 입력")[0]).toBeInTheDocument();
+    expect(screen.getByText("PID verified-local-001")).toBeInTheDocument();
+    expect(screen.getByText("입력 상태 평가")).toBeInTheDocument();
+  });
+
+  it("keeps a legacy observed-ranking identity disconnected", () => {
+    render(<I18nProvider><App /></I18nProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "내 계정" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "내 계정 닉네임" }), {
+      target: { value: "임시 계정" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "프로필 연결" }));
+
+    const stored = JSON.parse(
+      localStorage.getItem("dicetree:v49:account") ?? "null",
+    );
+    stored.identity = {
+      nickname: "#8 관측 계정",
+      source: "observed-ranking",
+      importedAt: new Date().toISOString(),
+      publicRank: 8,
+    };
+    localStorage.setItem("dicetree:v49:account", JSON.stringify(stored));
+
+    cleanup();
+    render(<I18nProvider><App /></I18nProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "내 계정" }));
+
+    expect(screen.getByText("계정 미연결")).toBeInTheDocument();
+    expect(screen.queryByText("#8 관측 계정")).not.toBeInTheDocument();
+    expect(screen.queryByText("입력 상태 평가")).not.toBeInTheDocument();
+  });
+
   it("keeps V3 share state semantic and restorable", async () => {
     const clipboard = { writeText: async () => undefined };
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: clipboard });

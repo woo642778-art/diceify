@@ -767,12 +767,6 @@ export function V3Shell() {
     setActiveDeckIds([...account.diceIds]);
     setDigitalTwin((twin) => ({
       ...twin,
-      identity: {
-        nickname: account.nickname,
-        source: "observed-ranking",
-        importedAt: new Date().toISOString(),
-        publicRank: account.rank,
-      },
       decks: twin.decks.map((deck) =>
         deck.id === twin.primaryDeckId
           ? { ...deck, diceIds: [...account.diceIds] }

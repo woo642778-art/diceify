@@ -803,13 +803,16 @@ test("V5 account import, current-state draft and local persistence work end to e
   await expect(page.getByText(/#8 · #8 관측 계정/)).toBeVisible();
   await page.getByRole("button", { name: "관측 덱만 적용" }).click();
   await expect(page.getByRole("status")).toContainText("관측 랭킹 덱만 적용");
+  await expect(page.getByText("계정 미연결")).toBeVisible();
+  await expect(page.getByText("입력 상태 평가")).toHaveCount(0);
   await page.getByRole("button", { name: "현재 입력으로 초안 만들기" }).click();
   await expect(page.getByLabel("계정 스냅샷 JSON")).toHaveValue(
     /"schemaVersion": 1/,
   );
   await page.reload();
   await openShellTab(page, "내 계정");
-  await expect(page.getByText("#8 관측 계정").first()).toBeVisible();
+  await expect(page.getByText("계정 미연결")).toBeVisible();
+  await expect(page.getByText("#8 관측 계정")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

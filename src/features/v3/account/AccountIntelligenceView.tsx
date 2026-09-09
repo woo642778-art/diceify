@@ -173,7 +173,9 @@ export function AccountIntelligenceView({
     (action) => !action.dominated && action.kind !== "data-required",
   );
   const primaryDeck = twin.decks.find((deck) => deck.id === twin.primaryDeckId);
-  const accountConnected = Boolean(twin.identity);
+  const connectedIdentity =
+    twin.identity?.source === "observed-ranking" ? undefined : twin.identity;
+  const accountConnected = Boolean(connectedIdentity);
 
   const patchGoal = (patch: Partial<UserDigitalTwinV48["goal"]>) =>
     onTwinChange({ ...twin, goal: { ...twin.goal, ...patch } });
@@ -207,19 +209,21 @@ export function AccountIntelligenceView({
               ? "트리, 덱, 재화, 목표를 하나의 상태로 묶어 다음 행동을 계산합니다."
               : "One state connects your tree, deck, resources, and goals to calculate the next action."}
           </p>
-          {twin.identity && (
+          {connectedIdentity && (
             <div className="v49-identity-chip">
-              <b>{twin.identity.nickname}</b>
-              {twin.identity.publicRank && (
-                <span>#{twin.identity.publicRank}</span>
+              <b>{connectedIdentity.nickname}</b>
+              {connectedIdentity.publicRank && (
+                <span>#{connectedIdentity.publicRank}</span>
               )}
-              {twin.identity.pid && <small>PID {twin.identity.pid}</small>}
+              {connectedIdentity.pid && (
+                <small>PID {connectedIdentity.pid}</small>
+              )}
               <em>
-                {twin.identity.source === "verified-import"
+                {connectedIdentity.source === "verified-import"
                   ? locale === "ko"
                     ? "검증된 가져오기"
                     : "Verified import"
-                  : twin.identity.source === "local-profile"
+                  : connectedIdentity.source === "local-profile"
                     ? locale === "ko"
                       ? "이 브라우저 계정"
                       : "Browser account"
