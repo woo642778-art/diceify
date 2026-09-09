@@ -130,7 +130,7 @@ test("tree pan renders before pointer release and never flashes a white document
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   const canvas = page.getByTestId("v3-tree-canvas");
   const transform = page.getByTestId("v3-tree-transform");
@@ -189,7 +189,7 @@ test("online platform preserves an honest local fallback when no Worker is attac
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "온라인");
   await expect(page.getByTestId("v58-online-platform")).toBeVisible();
   await expect(page.getByText("로컬 모드")).toBeVisible();
@@ -199,7 +199,7 @@ test("online platform preserves an honest local fallback when no Worker is attac
 
 test("Diceify home exposes verified discovery and rejects fake player results", async ({ page, isMobile }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await expect(page.getByTestId("diceify-home")).toBeVisible();
   await expect(page.getByRole("heading", { name: /지금 쓰는 덱/ })).toBeVisible();
   await expect(page.getByText(/승률 예측이 아니라 동일 조합의 실제 관측 횟수/)).toBeVisible();
@@ -216,7 +216,7 @@ test("Diceify home exposes verified discovery and rejects fake player results", 
 
 test("Diceify guild directory never substitutes fake listings for a missing service", async ({ page, isMobile }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "길드");
   await expect(page.getByTestId("diceify-guild-directory")).toBeVisible();
   await expect(page.getByRole("heading", { name: "길드 서버가 아직 연결되지 않았습니다" })).toBeVisible();
@@ -229,7 +229,7 @@ test("personal lab saves what-if scenarios without changing the current account"
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   const original = await readTreeResources(page);
   await openShellTab(page, "온라인");
@@ -259,7 +259,7 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await expect(page.getByTestId("v3-tree-view")).toBeVisible();
   await expect(page.getByTestId("v3-tree-canvas")).toBeVisible();
@@ -282,7 +282,7 @@ test("V3 Dice Tree invests, shares and restores Gold/Dice Core state", async ({
   await expect(about).toContainText("비공식 팬 도구");
   await expect(
     about.getByRole("link", { name: "GitHub에서 diceify 보기" }),
-  ).toHaveAttribute("href", "https://github.com/woo642778-art/dicetree");
+  ).toHaveAttribute("href", "https://github.com/woo642778-art/diceify");
   await page.screenshot({
     path: `test-results/qa-v54-about-${isMobile ? "mobile" : "desktop"}.png`,
     fullPage: false,
@@ -363,7 +363,7 @@ test("V4.8 account intelligence exposes optimizer, encyclopedia, meta clusters a
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "시뮬레이터");
   await selectDiceByInternalId(page, "wind");
   await setTreeResources(page, "300000", "60");
@@ -421,7 +421,7 @@ test("V4.8 account intelligence exposes optimizer, encyclopedia, meta clusters a
   await expect(page.getByText("메타 군집과 환경 점수")).toBeVisible();
   await expect(page.locator(".v48-cluster-grid > article")).toHaveCount(3);
 
-  const manifest = await page.request.get("/dicetree/manifest.webmanifest");
+  const manifest = await page.request.get("/diceify/manifest.webmanifest");
   expect(manifest.ok()).toBe(true);
   expect((await manifest.json()).display).toBe("standalone");
   expect(errors).toEqual([]);
@@ -432,7 +432,7 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
 
   const hub = page.getByTestId("v46-tree-core");
@@ -442,7 +442,7 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   await expect(nature).toHaveAttribute("data-level", "1");
   await expect(page.locator('image[data-dice-id="fear"]')).toHaveAttribute(
     "href",
-    "/dicetree/dice-icons/fear.webp",
+    "/diceify/dice-icons/fear.webp",
   );
 
   await setTreeResources(page, "9999999", "9999");
@@ -463,13 +463,13 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   const solar = await focusTreeNode(page, "1501");
   await expect(solar.locator('image[data-dice-id="solar"]')).toHaveAttribute(
     "href",
-    "/dicetree/dice-icons/solar.webp",
+    "/diceify/dice-icons/solar.webp",
   );
   await expect(page.getByTestId("v41-cost-1501")).toContainText("100K");
   await expect(page.getByTestId("v41-cost-1501")).toContainText("2,000");
   await expect(
     page.getByTestId("v3-node-1601").locator("image.v59-tree-node-art"),
-  ).toHaveAttribute("href", "/dicetree/tree-node-icons/node-1601.webp");
+  ).toHaveAttribute("href", "/diceify/tree-node-icons/node-1601.webp");
   expect(errors).toEqual([]);
 });
 
@@ -478,7 +478,7 @@ test("V4.8.1 starts with base dice unlocked, buys the next nodes and deducts the
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "3000", "10");
 
@@ -520,7 +520,7 @@ test("V4.8.1 protects starter ownership and unlocks its child without spending r
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "0", "10");
 
@@ -554,7 +554,7 @@ test("V5 virtual routes work at zero balance and nickname accounts reload outsid
     "desktop covers persistent account storage and the virtual shortfall workflow; mobile uses the same state model",
   );
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
 
   const core = page.getByRole("spinbutton", { name: "남은 다이스 코어" });
@@ -630,7 +630,7 @@ test("V5.1 purchase planner combines daily farming with the cheapest deadline pa
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "구매 효율");
   const planner = page.getByTestId("v51-time-cash-planner");
   await planner.scrollIntoViewIfNeeded();
@@ -669,7 +669,7 @@ test("V4 route planner applies prerequisites as one preview and supports cancell
     "desktop verifies the full route and header-level clear action; route logic is covered by unit tests on all viewports",
   );
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await page.getByRole("spinbutton", { name: "남은 골드" }).fill("9999999");
   await page.getByRole("spinbutton", { name: "남은 다이스 코어" }).fill("9999");
@@ -723,7 +723,7 @@ test("V4.4 Tree search focuses normalized effect terms and drag distance follows
     "desktop validates precise mouse dragging; mobile touch navigation remains covered separately",
   );
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
 
   const search = page.getByRole("textbox", { name: "트리 검색" });
@@ -781,7 +781,7 @@ test("V5.5 mobile tree search remains dark, populated and usable at 6x zoom", as
     "Mobile Safari-style compositing guard is the target of this regression test",
   );
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await page.getByRole("button", { name: "검색", exact: true }).click();
   const search = page.getByRole("textbox", { name: "모바일 트리 검색" });
@@ -829,13 +829,13 @@ test("V5.5 mobile tree search remains dark, populated and usable at 6x zoom", as
 test("V5.5 first visit introduces creator Monim and persists dismissal", async ({
   page,
 }) => {
-  await page.goto("/dicetree/?welcome-test=1");
+  await page.goto("/diceify/?welcome-test=1");
   const dialog = page.getByRole("dialog", { name: "제작자 모님" });
   await expect(dialog).toBeVisible();
   await expect(dialog).toContainText("WELCOME TO DICEIFY");
   await expect(
     dialog.getByRole("link", { name: "GitHub에서 diceify 보기" }),
-  ).toHaveAttribute("href", "https://github.com/woo642778-art/dicetree");
+  ).toHaveAttribute("href", "https://github.com/woo642778-art/diceify");
   await dialog.getByRole("button", { name: "사이트 정보 닫기" }).click();
   await page.reload();
   await expect(dialog).toHaveCount(0);
@@ -845,7 +845,7 @@ test("V5 account import, current-state draft and local persistence work end to e
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "내 계정");
   await page.getByLabel("공개 랭킹 닉네임 또는 순위").fill("#8");
   await page.getByRole("button", { name: "랭킹 참고 찾기" }).click();
@@ -869,7 +869,7 @@ test("V5 tier maker filters, assigns and restores a local 41-dice draft", async 
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "티어 메이커");
   await expect(page.getByTestId("v50-tier-maker")).toBeVisible();
   await page.getByLabel("티어 주사위 검색").fill("원자");
@@ -894,7 +894,7 @@ test("V3 Simulator exposes dice-specific conditions and partial-safe Predator ou
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "시뮬레이터");
   await expect(page.getByTestId("v3-simulator-view")).toBeVisible();
   await expect(page.getByTestId("v3-condition-controls")).toBeVisible();
@@ -932,7 +932,7 @@ test("V3 client-table projection reacts to permanent level and battle upgrade wi
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "시뮬레이터");
   await selectDiceByInternalId(page, "wind");
 
@@ -972,7 +972,7 @@ test("V3 custom enemy HP changes kill time through the shared scenario engine", 
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "시뮬레이터");
   await selectDiceByInternalId(page, "wind");
 
@@ -993,7 +993,7 @@ test("V3 real Wind Dice Tree path changes the selected dice tree stat without fa
     "canonical multi-node route interaction is covered on desktop; mobile pan/detail flow is separate",
   );
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await page.getByRole("spinbutton", { name: "남은 골드" }).fill("9999999");
   await page.getByRole("spinbutton", { name: "남은 다이스 코어" }).fill("9999");
@@ -1029,7 +1029,7 @@ test("Diceify Deck Lab separates observed compositions from manual scores and op
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "덱 연구소");
   await expect(page.getByTestId("v4-deck-lab")).toBeVisible();
   await expect(page.getByTestId("v4-deck-lab")).toContainText("15장 · 1~105위");
@@ -1056,7 +1056,7 @@ test("V4.3 Purchase Value uses won in Korean and dollars in English", async ({
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "구매 효율");
   await expect(page.getByTestId("v41-purchase-efficiency")).toBeVisible();
   await expect(page.getByTestId("v41-purchase-source")).toContainText(
@@ -1110,7 +1110,7 @@ test("V4.5 Simulator, Compare and Purchase Value allow document scrolling", asyn
   page,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   for (const label of ["시뮬레이터", "비교", "구매 효율"]) {
     await openShellTab(page, label);
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -1131,7 +1131,7 @@ test("V3 Compare uses the shared engine and stays confidence-aware", async ({
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "비교");
   await expect(page.getByTestId("v3-compare-view")).toBeVisible();
   await expect(page.getByTestId("compare-left")).toBeVisible();
@@ -1161,7 +1161,7 @@ test("V4.5 guided route provides a complete justified affordable plan and applie
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await setTreeResources(page, "9999999", "999");
   if (isMobile)
@@ -1198,7 +1198,7 @@ test("V4.5 guided route provides a complete justified affordable plan and applie
 
 test("V3 malformed share state fails safely", async ({ page }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/#b=v3.not-valid");
+  await page.goto("/diceify/#b=v3.not-valid");
   await openShellTab(page, "다이스 트리");
   await expect(page.getByRole("status")).toBeVisible();
   await expect(page.getByTestId("v3-tree-canvas")).toBeVisible();
@@ -1211,7 +1211,7 @@ test("mobile V3 tree supports touch pan and bottom-sheet node details", async ({
 }) => {
   test.skip(!isMobile, "mobile project only");
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "다이스 트리");
   await expect(page.getByRole("button", { name: "내 프로필" })).toBeVisible();
   const canvas = page.getByTestId("v3-tree-canvas");
@@ -1308,7 +1308,7 @@ test("V4.7 filters non-dice records and exposes scenario sweeps, deck analysis a
   isMobile,
 }) => {
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await openShellTab(page, "시뮬레이터");
   await expect(page.getByTestId("v47-scenario-sweep")).toBeVisible();
   const diceList = page.getByRole("listbox", { name: "주사위 목록" });
@@ -1344,7 +1344,7 @@ test("V4.7 saves local profiles and creates a dedicated shared result page", asy
 }) => {
   test.skip(isMobile, "desktop composer verification");
   const errors = captureBrowserErrors(page);
-  await page.goto("/dicetree/");
+  await page.goto("/diceify/");
   await page.getByRole("button", { name: "내 프로필" }).click();
   await page.getByRole("textbox", { name: "프로필 이름" }).fill("본계정");
   await page.getByRole("button", { name: "현재 상태 저장" }).click();

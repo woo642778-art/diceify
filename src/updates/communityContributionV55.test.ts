@@ -8,6 +8,6 @@ describe("community contribution V55", () => {
     const contribution = createCommunityContributionV55(data, { kind: "data-correction", sourceUrl: "https://example.com", observedOn: "2026-08-23", note: "Different cost" });
     expect(contribution.reviewStatus).toBe("pending-community-review");
     expect(contribution.dataset.clientVersion).toBe("1.0.1");
-    expect(communityIssueUrlV55(contribution.contribution)).toContain("github.com/woo642778-art/dicetree/issues/new");
+    expect(communityIssueUrlV55(contribution.contribution)).toContain("github.com/woo642778-art/diceify/issues/new");
   });
 });

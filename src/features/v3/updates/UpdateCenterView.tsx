@@ -56,7 +56,7 @@ export function UpdateCenterView({ data, locale, activeDeckIds, state, onUpdateS
         <div><dt>{locale === "ko" ? "정규 데이터" : "Canonical data"}</dt><dd>{data.dice.length} / {data.tree.length}</dd><small>{locale === "ko" ? "주사위 / 트리 노드" : "dice / tree nodes"}</small></div>
         <div><dt>{locale === "ko" ? "원본 식별" : "Source fingerprint"}</dt><dd>{data.manifest.sourceSha256.slice(0, 12)}</dd><small>SHA-256</small></div>
       </dl>
-      <footer><a href="https://github.com/woo642778-art/dicetree/blob/main/docs/data/v3-client-1.1.0-extraction.md" target="_blank" rel="noreferrer">{locale === "ko" ? "1.1.0 추출·검증 방법 보기" : "View 1.1.0 extraction and validation"}</a><span>{locale === "ko" ? "클라이언트 표의 주사위·노드·룬과 비용만 계산에 반영하며, 스토어 공지에 없는 전투 수치는 추정하지 않습니다." : "Only client-table dice, nodes, runes, and costs enter calculations; unpublished combat values are not inferred."}</span></footer>
+      <footer><a href="https://github.com/woo642778-art/diceify/blob/main/docs/data/v3-client-1.1.0-extraction.md" target="_blank" rel="noreferrer">{locale === "ko" ? "1.1.0 추출·검증 방법 보기" : "View 1.1.0 extraction and validation"}</a><span>{locale === "ko" ? "클라이언트 표의 주사위·노드·룬과 비용만 계산에 반영하며, 스토어 공지에 없는 전투 수치는 추정하지 않습니다." : "Only client-table dice, nodes, runes, and costs enter calculations; unpublished combat values are not inferred."}</span></footer>
     </section>
 
     <section className="v47-official-patches">

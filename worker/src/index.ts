@@ -108,7 +108,7 @@ app.get("/auth/google/callback", async (c) => {
   c.header("Set-Cookie", cookie("dt_csrf", session.csrf, { maxAge: session.maxAge }), { append: true });
   c.header("Set-Cookie", cookie("dt_oauth_state", "", { httpOnly: true, maxAge: 0 }), { append: true });
   c.header("Set-Cookie", cookie("dt_oauth_verifier", "", { httpOnly: true, maxAge: 0 }), { append: true });
-  return c.redirect("/dicetree/");
+  return c.redirect("/diceify/");
 });
 
 const publicGetRoutes = new Set([
@@ -629,11 +629,11 @@ app.post("/api/v1/admin/reports/:reportId/action", async (c) => {
 });
 
 app.route("/api/v1",phase2Routes);
-app.get("/", (c) => c.redirect("/dicetree/"));
+app.get("/", (c) => c.redirect("/diceify/"));
 app.all("*", (c) => {
   const url = new URL(c.req.url);
   if (url.pathname === "/dicetree") url.pathname = "/";
-  else if (url.pathname.startsWith("/dicetree/")) url.pathname = url.pathname.slice("/dicetree".length) || "/";
+  else if (url.pathname.startsWith("/diceify/")) url.pathname = url.pathname.slice("/diceify".length) || "/";
   return c.env.ASSETS.fetch(new Request(url,c.req.raw));
 });
 

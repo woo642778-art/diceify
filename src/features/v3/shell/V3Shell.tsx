@@ -1663,7 +1663,7 @@ export function V3Shell() {
             </div>
             <a
               className="v54-about-link"
-              href="https://github.com/woo642778-art/dicetree"
+              href="https://github.com/woo642778-art/diceify"
               target="_blank"
               rel="noreferrer"
             >

@@ -40,5 +40,5 @@ export function communityIssueUrlV55(input: CommunityContributionInputV55): stri
     "",
     "This report is community evidence and must be independently verified before it changes canonical calculation data.",
   ].join("\n");
-  return `https://github.com/woo642778-art/dicetree/issues/new?title=${encodeURIComponent(`[Data] ${type}`)}&body=${encodeURIComponent(body)}`;
+  return `https://github.com/woo642778-art/diceify/issues/new?title=${encodeURIComponent(`[Data] ${type}`)}&body=${encodeURIComponent(body)}`;
 }

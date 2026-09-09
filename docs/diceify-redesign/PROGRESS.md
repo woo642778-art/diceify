@@ -1,9 +1,9 @@
 # Progress: Diceify 리브랜딩과 게임 정보·길드 플랫폼
 
-- Status: active
+- Status: completed
 - Milestone: 6/6 (100%)
-- Updated: 2026-09-09T02:23:58
-- Current work: Release candidate verified: 256 frontend unit tests, 20 Worker tests, 55 browser scenarios with 7 intentional skips, production build, Worker typecheck and dry-run all pass; adversarial data-integrity and lifecycle review recorded.
+- Updated: 2026-09-09T02:30:28
+- Current work: Diceify redesign deployed and live-verified. Evidence-first home, Deck Lab, dice catalog, ranking directory, honest account boundary and guild platform are complete; shared guild publishing remains dependent on production Worker, D1 and sign-in configuration.
 
 ## Log
 - 2026-09-09T01:43:36 | 1/6 | Baseline preserved; Brawlify information architecture mapped; Diceify data contract set to client 1.1.0 plus dated public ranking evidence with no fabricated rates.
@@ -12,3 +12,4 @@
 - 2026-09-09T01:54:59 | 4/6 | Authenticated guild listing, search, recruiting filter, save/inquiry ranking, uniqueness handling, export and deletion lifecycle implemented in Worker with no seeded fake guilds.
 - 2026-09-09T02:17:08 | 5/6 | Desktop and mobile browser verification passed for Diceify home, Deck Lab and guild directory; screenshots confirm the shared light editorial system, mobile navigation and removal of the unrelated resource HUD.
 - 2026-09-09T02:23:58 | 6/6 | Release candidate verified: 256 frontend unit tests, 20 Worker tests, 55 browser scenarios with 7 intentional skips, production build, Worker typecheck and dry-run all pass; adversarial data-integrity and lifecycle review recorded.
+- 2026-09-09T02:30:28 | 6/6 | Diceify redesign deployed and live-verified. Evidence-first home, Deck Lab, dice catalog, ranking directory, honest account boundary and guild platform are complete; shared guild publishing remains dependent on production Worker, D1 and sign-in configuration.

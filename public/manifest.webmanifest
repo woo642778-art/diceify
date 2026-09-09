@@ -2,13 +2,13 @@
   "name": "diceify for Random Dice 2",
   "short_name": "diceify",
   "description": "Random Dice 2 deck research, dice data, tree planning, rankings, and guild directory",
-  "start_url": "/dicetree/",
-  "scope": "/dicetree/",
+  "start_url": "/diceify/",
+  "scope": "/diceify/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1268f3",
   "lang": "ko",
   "icons": [
-    { "src": "/dicetree/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    { "src": "/diceify/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
   ]
 }

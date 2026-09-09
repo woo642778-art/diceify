@@ -7,7 +7,7 @@ function announceUpdateReady() {
 export function registerServiceWorkerV55() {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("/dicetree/sw.js", { scope: "/dicetree/" }).then((registration) => {
+    void navigator.serviceWorker.register("/diceify/sw.js", { scope: "/diceify/" }).then((registration) => {
       const announceIfWaiting = () => {
         if (registration.waiting && navigator.serviceWorker.controller) announceUpdateReady();
       };
@@ -25,7 +25,7 @@ export function registerServiceWorkerV55() {
 
 export async function applyServiceWorkerUpdateV55(): Promise<boolean> {
   if (!("serviceWorker" in navigator)) return false;
-  const registration = await navigator.serviceWorker.getRegistration("/dicetree/");
+  const registration = await navigator.serviceWorker.getRegistration("/diceify/");
   if (!registration?.waiting) return false;
   registration.waiting.postMessage({ type: "SKIP_WAITING" });
   return true;

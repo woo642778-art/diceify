@@ -2,7 +2,7 @@
 
 A public, login-free Random Dice 2 Dice Tree planner and condition-based combat simulator backed by statically extracted client data.
 
-Public site: **https://woo642778-art.github.io/dicetree/**
+Public site: **https://woo642778-art.github.io/diceify/**
 
 ## V3 data model
 
@@ -55,7 +55,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The Vite base path is `/dicetree/` for GitHub Pages. GitHub Actions runs extractor fixture validation, unit/component tests, production build, desktop/mobile Playwright flows and screenshot QA before Pages deployment.
+The Vite base path is `/diceify/` for GitHub Pages. GitHub Actions runs extractor fixture validation, unit/component tests, production build, desktop/mobile Playwright flows and screenshot QA before Pages deployment.
 
 ## Importing a future client safely
 

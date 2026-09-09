@@ -9,7 +9,7 @@ describe("V3 planner shell", () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem("dicetree:v55:creator-welcome-seen", "1");
-    window.history.replaceState(null, "", "/dicetree/");
+    window.history.replaceState(null, "", "/diceify/");
   });
 
   it("defaults to the Diceify home with evidence-backed discovery", () => {
@@ -66,7 +66,7 @@ describe("V3 planner shell", () => {
     const dialog = screen.getByRole("dialog", { name: "제작자 모님" });
     expect(dialog).toHaveTextContent("비공식 팬 도구");
     expect(dialog).toHaveTextContent("검증된 계산, 부분 검증, 추정");
-    expect(screen.getByRole("link", { name: "GitHub에서 diceify 보기" })).toHaveAttribute("href", "https://github.com/woo642778-art/dicetree");
+    expect(screen.getByRole("link", { name: "GitHub에서 diceify 보기" })).toHaveAttribute("href", "https://github.com/woo642778-art/diceify");
     fireEvent.click(screen.getByRole("button", { name: "사이트 정보 닫기" }));
     expect(screen.queryByRole("dialog", { name: "제작자 모님" })).not.toBeInTheDocument();
   });
