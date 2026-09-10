@@ -55,7 +55,7 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The Vite base path is `/diceify/` for GitHub Pages. GitHub Actions runs extractor fixture validation, unit/component tests, production build, desktop/mobile Playwright flows and screenshot QA before Pages deployment.
+The default Vite base path is `/` for Cloudflare Pages and custom domains. The existing GitHub Pages workflow passes `/diceify/` explicitly so the current public URL keeps working during the cutover. GitHub Actions runs extractor fixture validation, unit/component tests, production build, desktop/mobile Playwright flows and screenshot QA before Pages deployment.
 
 ## Importing a future client safely
 

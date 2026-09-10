@@ -5,14 +5,14 @@ Checked on 2026-09-09:
 - `diceify.com` has an active registration record.
 - `diceify.xyz` returned an RDAP not-found response, which is a strong availability signal but is not a purchase reservation.
 
-The production build accepts a `VITE_BASE_PATH` repository variable. It defaults to `/diceify/` for the current project Pages URL. Its manifest and service worker derive their scope from that build path.
+The production build accepts a `VITE_BASE_PATH` variable and now defaults to `/` for Cloudflare Pages or a custom domain. The GitHub Pages workflow still supplies `/diceify/` explicitly. The manifest and service worker derive their scope from the selected build path.
 
 After the chosen domain is registered:
 
-1. Add the exact domain in GitHub repository Settings, Pages, Custom domain.
-2. Add the DNS records required by GitHub Pages at the domain registrar or DNS provider.
-3. Set the repository Actions variable `VITE_BASE_PATH` to `/`.
-4. Add `public/CNAME` containing only the final domain.
-5. Deploy, verify DNS, then enable Enforce HTTPS.
+1. Connect the `woo642778-art/diceify` repository to a Cloudflare Pages project named `diceify`.
+2. Use `npm install --no-package-lock && npm run build`, output directory `dist`, Node.js `22.22.0`, and `VITE_BASE_PATH=/`.
+3. Verify `https://diceify.pages.dev/`, including nested SPA fallback, static assets, and service-worker scope.
+4. Add the exact owned domain in Cloudflare Pages, Custom domains.
+5. Follow Cloudflare's guided DNS record setup and verify HTTPS before changing the README public URL.
 
-Do not add `public/CNAME` before the domain is owned and the final hostname is confirmed. An invented or unowned CNAME would break the live deployment again.
+Do not add a DNS record or claim a final `.com` or `.xyz` address before the domain is owned and the final hostname is confirmed. An invented or unowned hostname would make the cutover unverifiable.

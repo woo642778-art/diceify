@@ -271,6 +271,9 @@ export function V3Shell() {
   const liveStatus = useLiveGameStatusV62();
   const [accountSeed] = useState(loadAccountTwin);
   const [tab, setTab] = useState<Tab>("home");
+  const [headerScrolled, setHeaderScrolled] = useState(
+    () => window.scrollY > 24,
+  );
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [guidedRouteOpen, setGuidedRouteOpen] = useState(false);
   const [familyFilter, setFamilyFilter] = useState<DiceFamilyV3 | "all">("all");
@@ -345,6 +348,12 @@ export function V3Shell() {
   useEffect(() => {
     setUpdateUnread(hasUnreadUpdateV55(liveStatus.data.officialStore.version));
   }, [liveStatus.data.officialStore.version]);
+  useEffect(() => {
+    const updateHeader = () => setHeaderScrolled(window.scrollY > 24);
+    updateHeader();
+    window.addEventListener("scroll", updateHeader, { passive: true });
+    return () => window.removeEventListener("scroll", updateHeader);
+  }, []);
   const [history, dispatchBase] = useReducer(
     (
       current: ReturnType<typeof createPlannerHistoryV3>,
@@ -900,7 +909,7 @@ export function V3Shell() {
   return (
     <div className={`v3-app v41-mode-${tab}`} data-testid="v3-app">
       <PwaUpdatePromptV55 locale={locale} />
-      <header className="v3-header">
+      <header className={`v3-header ${tab === "home" ? "is-home-header" : ""} ${headerScrolled ? "is-scrolled" : ""}`}>
         <button
           className="v3-brand"
           type="button"

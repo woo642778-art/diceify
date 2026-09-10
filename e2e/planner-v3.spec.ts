@@ -164,7 +164,7 @@ test("tree pan renders before pointer release and never flashes a white document
   await expect.poll(() => transform.getAttribute("transform")).not.toBe(before);
   await expect(page.locator("html")).toHaveCSS(
     "background-color",
-    "rgb(16, 19, 21)",
+    "rgb(9, 19, 28)",
   );
   await expect(page.locator("body")).not.toHaveCSS(
     "background-color",
@@ -215,6 +215,28 @@ test("Diceify home exposes verified discovery and rejects fake player results", 
   await page.getByRole("button", { name: "검색", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("실시간 조회 공급자가 연결되지 않았습니다");
   await page.screenshot({ path: `test-results/qa-diceify-home-${isMobile ? "mobile" : "desktop"}.png`, fullPage: true });
+  expect(errors).toEqual([]);
+});
+
+test("Diceify home keeps one continuous atmosphere and an adaptive header", async ({
+  page,
+}) => {
+  const errors = captureBrowserErrors(page);
+  await page.goto("/diceify/");
+  const header = page.locator(".v3-header");
+  const hero = page.locator(".d61-home-hero");
+  const artwork = page.locator(".d61-hero-topology");
+  await expect(header).toHaveClass(/is-home-header/);
+  await expect(header).not.toHaveClass(/is-scrolled/);
+  await expect(hero).toHaveCSS("overflow", "visible");
+  await expect(artwork).toHaveAttribute("src", /hero\/diceify-topology-v4\.png$/);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth === document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 180));
+  await expect(header).toHaveClass(/is-scrolled/);
   expect(errors).toEqual([]);
 });
 
@@ -425,7 +447,11 @@ test("V4.8 account intelligence exposes optimizer, encyclopedia, meta clusters a
   await expect(page.getByText("메타 군집과 환경 점수")).toBeVisible();
   await expect(page.locator(".v48-cluster-grid > article")).toHaveCount(3);
 
-  const manifest = await page.request.get("/diceify/manifest.webmanifest");
+  const manifestHref = await page
+    .locator('link[rel="manifest"]')
+    .getAttribute("href");
+  expect(manifestHref).toBeTruthy();
+  const manifest = await page.request.get(manifestHref!);
   expect(manifest.ok()).toBe(true);
   expect((await manifest.json()).display).toBe("standalone");
   expect(errors).toEqual([]);
@@ -446,7 +472,7 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   await expect(nature).toHaveAttribute("data-level", "1");
   await expect(page.locator('image[data-dice-id="fear"]')).toHaveAttribute(
     "href",
-    "/diceify/dice-icons/fear.webp",
+    /\/dice-icons\/fear\.webp$/,
   );
 
   await setTreeResources(page, "9999999", "9999");
@@ -467,13 +493,13 @@ test("V4.6 center hub mirrors family investment levels and uses the full Terror 
   const solar = await focusTreeNode(page, "1501");
   await expect(solar.locator('image[data-dice-id="solar"]')).toHaveAttribute(
     "href",
-    "/diceify/dice-icons/solar.webp",
+    /\/dice-icons\/solar\.webp$/,
   );
   await expect(page.getByTestId("v41-cost-1501")).toContainText("100K");
   await expect(page.getByTestId("v41-cost-1501")).toContainText("2,000");
   await expect(
     page.getByTestId("v3-node-1601").locator("image.v59-tree-node-art"),
-  ).toHaveAttribute("href", "/diceify/tree-node-icons/node-1601.webp");
+  ).toHaveAttribute("href", /\/tree-node-icons\/node-1601\.webp$/);
   expect(errors).toEqual([]);
 });
 

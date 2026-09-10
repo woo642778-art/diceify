@@ -2,8 +2,9 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  // Keep project Pages working now; switch the repository variable to `/` after a custom domain is attached.
-  base: process.env.VITE_BASE_PATH?.trim() || "/diceify/",
+  // Cloudflare Pages and custom domains deploy at root. GitHub Pages keeps
+  // passing /diceify/ explicitly from its workflow while it remains online.
+  base: process.env.VITE_BASE_PATH?.trim() || "/",
   plugins: [react()],
   test: {
     include: ["src/**/*.test.{ts,tsx}"],

@@ -29,6 +29,7 @@ import "./app/v59-client-110.css";
 import "./app/v60-diceify.css";
 import "./app/v60-diceify-deck.css";
 import "./app/v61-diceify-dark.css";
+import "./app/v63-atmosphere.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
