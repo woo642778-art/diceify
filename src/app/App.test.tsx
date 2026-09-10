@@ -71,6 +71,20 @@ describe("V3 planner shell", () => {
     expect(screen.queryByRole("dialog", { name: "제작자 모님" })).not.toBeInTheDocument();
   });
 
+  it("shows verified external freshness without claiming live accounts or rankings", () => {
+    render(<I18nProvider><App /></I18nProvider>);
+    fireEvent.click(screen.getByRole("button", { name: "최신 게임 데이터 상태 열기" }));
+    const sources = screen.getByTestId("v62-live-sources");
+    expect(sources).toHaveTextContent("공식 배포");
+    expect(sources).toHaveTextContent("v1.1.0");
+    expect(sources).toHaveTextContent("주사위42");
+    expect(sources).toHaveTextContent("트리241");
+    expect(sources).toHaveTextContent("보스21");
+    expect(sources).toHaveTextContent("전술58");
+    expect(sources).toHaveTextContent("균열 효과55");
+    expect(sources).toHaveTextContent("계정·실시간 랭킹 API는 확인되지 않아 자동 갱신 대상에서 제외");
+  });
+
   it("shows the creator introduction once on first visit and remembers dismissal", () => {
     localStorage.removeItem("dicetree:v55:creator-welcome-seen");
     render(<I18nProvider><App /></I18nProvider>);
@@ -102,7 +116,7 @@ describe("V3 planner shell", () => {
     expect(screen.queryByText("계정 전체 다음 행동")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "주사위" }));
-    expect(screen.getByTestId("diceify-dice-catalog")).toHaveTextContent("플레이 가능 주사위 53종");
+    expect(screen.getByTestId("diceify-dice-catalog")).toHaveTextContent("플레이 가능 주사위 42종");
     fireEvent.change(screen.getByRole("textbox", { name: "주사위 이름 검색" }), { target: { value: "원자" } });
     expect(screen.getByRole("button", { name: /원자/ })).toBeInTheDocument();
 

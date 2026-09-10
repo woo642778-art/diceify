@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "sync:live-data": "node scripts/sync-live-data.mjs",
     "preview": "vite preview",
     "test": "vitest run --maxWorkers=2",
     "test:watch": "vitest",

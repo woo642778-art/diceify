@@ -1,10 +1,12 @@
 import { useMemo,useState } from "react";
 import { CO_OP_RANKING_SNAPSHOT,CO_OP_RANKING_SNAPSHOT_DATE,summarizeDiceUsage } from "../../../deck-lab/coOpRankingSnapshot";
 import { groupObservedDecks } from "../../../diceify/observedMeta";
+import { playableDiceV3 } from "../../../game-data/playableDice";
 import type { CanonicalGameData } from "../../../game-data/types";
+import type { LiveGameStatusStateV62 } from "../../../live-data/types";
 import { DiceIcon } from "../shared/DiceIcon";
 
-type Destination="decks"|"dice"|"tree"|"rankings"|"guild"|"account";
+type Destination="decks"|"dice"|"tree"|"rankings"|"guild"|"account"|"updates";
 const tools:[Destination,string,string][]=[
   ["decks","덱 연구소","관측 랭킹 조합과 게임 데이터를 비교합니다."],
   ["dice","주사위","플레이 가능한 주사위의 능력치와 인게임 설명을 찾습니다."],
@@ -18,11 +20,13 @@ function name(data:CanonicalGameData,id:string,locale:"ko"|"en"){
   return dice?.nameKey ? data.localization[locale][dice.nameKey]??id : id;
 }
 
-export function DiceifyHome({data,locale,onNavigate,onSelectDice,gold,core,solarCore,plannedNodes,targetDiceId,activeDeckIds}:{data:CanonicalGameData;locale:"ko"|"en";onNavigate:(to:Destination)=>void;onSelectDice:(id:string)=>void;gold:number;core:number;solarCore:number;plannedNodes:number;targetDiceId:string;activeDeckIds:readonly string[]}){
+export function DiceifyHome({data,locale,onNavigate,onSelectDice,gold,core,solarCore,plannedNodes,targetDiceId,activeDeckIds,liveStatus}:{data:CanonicalGameData;locale:"ko"|"en";onNavigate:(to:Destination)=>void;onSelectDice:(id:string)=>void;gold:number;core:number;solarCore:number;plannedNodes:number;targetDiceId:string;activeDeckIds:readonly string[];liveStatus:LiveGameStatusStateV62}){
   const [query,setQuery]=useState("");
   const [notice,setNotice]=useState("");
   const groups=useMemo(()=>groupObservedDecks().slice(0,5),[]);
   const usage=useMemo(()=>summarizeDiceUsage().slice(0,5),[]);
+  const playableCount=useMemo(()=>playableDiceV3(data).length,[data]);
+  const versionsMatch=liveStatus.data.officialStore.version===data.manifest.clientVersion;
   const search=()=>{
     const clean=query.normalize("NFKC").trim().toLocaleLowerCase();
     if(!clean)return;
@@ -39,6 +43,16 @@ export function DiceifyHome({data,locale,onNavigate,onSelectDice,gold,core,solar
         <button type="button" onClick={()=>onNavigate("tree")}>{locale==="ko"?"다이스 트리 열기":"Open Dice Tree"}</button>
       </div>
       <img src={`${import.meta.env.BASE_URL}hero/diceify-topology-v1.png`} alt="" aria-hidden="true" className="d61-hero-topology"/>
+    </section>
+    <section className={`v62-home-freshness ${versionsMatch?"is-current":"is-outdated"}`} aria-label={locale==="ko"?"최신 데이터 상태":"Live data status"}>
+      <div><i aria-hidden="true"/><span><small>{locale==="ko"?(liveStatus.phase==="live"?"실시간 확인":"최근 확인본"):liveStatus.phase==="live"?"LIVE CHECK":"LATEST SNAPSHOT"}</small><strong>{locale==="ko"?`공식 v${liveStatus.data.officialStore.version}`:`Official v${liveStatus.data.officialStore.version}`}</strong></span></div>
+      <dl>
+        <div><dt>{locale==="ko"?"계산 데이터":"Calculator"}</dt><dd>v{data.manifest.clientVersion}</dd></div>
+        <div><dt>{locale==="ko"?"실제 주사위":"Playable dice"}</dt><dd>{playableCount}</dd></div>
+        <div><dt>{locale==="ko"?"트리":"Tree"}</dt><dd>{data.tree.length}</dd></div>
+        <div><dt>{locale==="ko"?"공개 교차검증":"Public cross-check"}</dt><dd>{liveStatus.data.publicCrossCheck.latestChangeDate.replaceAll("-",".")}</dd></div>
+      </dl>
+      <button type="button" onClick={()=>onNavigate("updates")}>{locale==="ko"?"출처·갱신 상태":"Sources & freshness"}</button>
     </section>
     <section className="d61-home-utility">
       <header><small>{locale==="ko"?"바로 시작":"START HERE"}</small><h2>{locale==="ko"?"현재 계획에서 이어가기":"Continue from your current plan"}</h2></header>
@@ -69,7 +83,7 @@ export function DiceifyHome({data,locale,onNavigate,onSelectDice,gold,core,solar
       <div>{groups.map((group)=><article key={group.diceIds.join("|")}><div className="d60-deck-icons">{group.diceIds.map((id)=><DiceIcon key={id} diceId={id} label={name(data,id,locale)}/>)}</div><strong>{locale==="ko"?`${group.appearances}회 관측`:`${group.appearances} appearances`}</strong><span>{locale==="ko"?`최고 #${group.bestRank} · ${group.role==="dealer"?"딜러":"서포트"}`:`Best #${group.bestRank} · ${group.role}`}</span></article>)}</div>
     </section>
     <div className="d60-hero-dice" aria-label={locale==="ko"?"랭킹에서 자주 관측된 주사위":"Frequently observed dice"}>{usage.map((entry)=><button key={entry.diceId} type="button" onClick={()=>onSelectDice(entry.diceId)}><DiceIcon diceId={entry.diceId} label={name(data,entry.diceId,locale)}/><span>{name(data,entry.diceId,locale)}</span></button>)}</div>
-    <p className="d61-source-line">{locale==="ko"?`게임 ${data.manifest.clientVersion} · 공개 랭킹 스냅샷 ${CO_OP_RANKING_SNAPSHOT_DATE.replaceAll("-",".")}`:`Game ${data.manifest.clientVersion} · ranking snapshot ${CO_OP_RANKING_SNAPSHOT_DATE}`}</p>
+    <p className="d61-source-line">{locale==="ko"?`공식 스토어 ${liveStatus.data.officialStore.version} · 계산 ${data.manifest.clientVersion} · 공개 랭킹 보존본 ${CO_OP_RANKING_SNAPSHOT_DATE.replaceAll("-",".")}`:`Official ${liveStatus.data.officialStore.version} · calculator ${data.manifest.clientVersion} · preserved ranking ${CO_OP_RANKING_SNAPSHOT_DATE}`}</p>
     <section className="d60-home-lower"><div><h2>{locale==="ko"?"랭킹 등장 주사위":"Dice in the ranking"}</h2>{usage.map((entry,index)=><button type="button" key={entry.diceId} onClick={()=>onSelectDice(entry.diceId)}><b>{index+1}</b><DiceIcon diceId={entry.diceId} label={name(data,entry.diceId,locale)}/><span>{name(data,entry.diceId,locale)}</span><em>{locale==="ko"?`${entry.decks}/${CO_OP_RANKING_SNAPSHOT.length}개 덱`:`${entry.decks}/${CO_OP_RANKING_SNAPSHOT.length} decks`}</em></button>)}</div><div><h2>{locale==="ko"?"빠른 도구":"Quick tools"}</h2>{tools.map(([id,title,description])=><button key={id} type="button" onClick={()=>onNavigate(id)}><span><strong>{locale==="ko"?title:id}</strong><small>{locale==="ko"?description:"Open this Diceify tool."}</small></span><b>→</b></button>)}</div></section>
   </main>;
 }

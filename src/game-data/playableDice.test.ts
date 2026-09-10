@@ -1,20 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { gameDataV3 } from "./load";
-import { isPlayableDiceV3, NON_PLAYABLE_DICE_IDS, playableDiceV3 } from "./playableDice";
+import { NON_PLAYABLE_DICE_IDS, playableDiceV3 } from "./playableDice";
 
 describe("playableDiceV3", () => {
-  it("excludes client-only battlefield objects while retaining utility dice", () => {
+  it("only exposes the 42 dice represented by playable Dice Tree nodes", () => {
     const ids = playableDiceV3(gameDataV3).map((dice) => dice.id);
-    expect([...NON_PLAYABLE_DICE_IDS].sort()).toEqual(["altar", "bomb", "spgemstone"]);
+    expect(ids).toHaveLength(42);
+    expect(ids).toContain("predator");
+    expect(ids).toContain("solar");
+    expect(ids).not.toContain("joker");
     expect(ids).not.toContain("spgemstone");
-    expect(ids).not.toContain("altar");
     expect(ids).not.toContain("bomb");
-    expect(ids).toContain("joker");
-  });
-
-  it("only rejects explicitly verified non-deck records", () => {
-    expect(isPlayableDiceV3("predator")).toBe(true);
-    expect(isPlayableDiceV3("joker")).toBe(true);
-    expect(isPlayableDiceV3("bomb")).toBe(false);
+    expect(new Set(ids)).toEqual(
+      new Set(
+        gameDataV3.tree
+          .filter((node) => node.kind === "dice")
+          .map((node) => node.targetId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+    expect(new Set(gameDataV3.dice.map((dice) => dice.id).filter((id) => !ids.includes(id)))).toEqual(NON_PLAYABLE_DICE_IDS);
   });
 });

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-10T08:25:10.152Z",
+  "officialStore": {
+    "provider": "Apple App Store",
+    "version": "1.1.0",
+    "releasedAt": "2026-09-05T01:46:15.000Z",
+    "releaseNotes": [
+      "신규 난이도 ‘어려움’ 추가",
+      "신규 시스템 ‘초월-태양 주사위’추가",
+      "신규 시스템 ‘균열 상점’ 추가",
+      "기타 편의성 업데이트"
+    ],
+    "averageRating": 4.22881,
+    "ratingCount": 1333,
+    "url": "https://apps.apple.com/kr/app/%EB%9E%9C%EB%8D%A4-%EB%8B%A4%EC%9D%B4%EC%8A%A4-2/id6748432502?uo=4"
+  },
+  "publicCrossCheck": {
+    "provider": "rd2-wiki",
+    "repository": "https://github.com/NatsuYukiowob/rd2-wiki",
+    "commitSha": "5270ceb0b001e50e38e2f89916853bbb1be9376a",
+    "committedAt": "2026-09-06T08:24:23.000Z",
+    "commitUrl": "https://github.com/NatsuYukiowob/rd2-wiki/commit/5270ceb0b001e50e38e2f89916853bbb1be9376a",
+    "latestChangeDate": "2026-09-06",
+    "gameVersion": "1.1.0",
+    "counts": {
+      "dice": 42,
+      "treeNodes": 241,
+      "bosses": 21,
+      "tactics": 58,
+      "riftEffects": 55
+    }
+  }
+}

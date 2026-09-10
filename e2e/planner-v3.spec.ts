@@ -11,7 +11,11 @@ function captureBrowserErrors(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("console", (message) => {
-    if (message.type() === "error") errors.push(message.text());
+    if (message.type() === "error" && !message.text().startsWith("Failed to load resource")) errors.push(message.text());
+  });
+  page.on("response", (response) => {
+    const sameOrigin = new URL(response.url()).origin === "http://127.0.0.1:4173";
+    if (sameOrigin && response.status() >= 400) errors.push(`HTTP ${response.status()} ${response.url()}`);
   });
   return errors;
 }
@@ -1312,6 +1316,8 @@ test("V4.7 filters non-dice records and exposes scenario sweeps, deck analysis a
   await openShellTab(page, "시뮬레이터");
   await expect(page.getByTestId("v47-scenario-sweep")).toBeVisible();
   const diceList = page.getByRole("listbox", { name: "주사위 목록" });
+  await expect(diceList.getByRole("option")).toHaveCount(42);
+  await expect(diceList.locator('[data-dice-id="joker"]')).toHaveCount(0);
   await expect(diceList.locator('[data-dice-id="spgemstone"]')).toHaveCount(0);
   await expect(diceList.locator('[data-dice-id="altar"]')).toHaveCount(0);
   await expect(diceList.locator('[data-dice-id="bomb"]')).toHaveCount(0);
@@ -1331,6 +1337,11 @@ test("V4.7 filters non-dice records and exposes scenario sweeps, deck analysis a
   await openShellTab(page, "업데이트");
   await expect(page.getByTestId("v47-update-center")).toBeVisible();
   await expect(page.getByTestId("v47-update-center")).toContainText("1.0.1");
+  const liveSources = page.getByTestId("v62-live-sources");
+  await expect(liveSources).toContainText("v1.1.0");
+  await expect(liveSources).toContainText("주사위42");
+  await expect(liveSources).toContainText("트리241");
+  await expect(liveSources).toContainText("계정·실시간 랭킹 API는 확인되지 않아 자동 갱신 대상에서 제외");
   await page.screenshot({
     path: `test-results/qa-v47-updates-${isMobile ? "mobile" : "desktop"}.png`,
     fullPage: true,

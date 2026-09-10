@@ -88,7 +88,8 @@ import { PwaUpdatePromptV55 } from "./PwaUpdatePromptV55";
 import { PerformanceDiagnosticsV55 } from "./PerformanceDiagnosticsV55";
 import type { ScreenshotAccountDraftV52 } from "../../../account/screenshotImportV52";
 import { hasUnreadUpdateV55 } from "../../../updates/updateWatchV55";
-import { OFFICIAL_PATCH_HISTORY_V47 } from "../../../updates/patchHistory";
+import { useLiveGameStatusV62 } from "../../../live-data/useLiveGameStatusV62";
+import { LiveDataIndicatorV62 } from "../updates/LiveDataIndicatorV62";
 
 const OnlinePlatformView = lazy(() =>
   import("../community/OnlinePlatformView").then((module) => ({
@@ -267,6 +268,7 @@ function simulationInput(
 export function V3Shell() {
   const { locale, setLocale } = useI18n();
   const mobileLayout = useMobileLayoutV53();
+  const liveStatus = useLiveGameStatusV62();
   const [accountSeed] = useState(loadAccountTwin);
   const [tab, setTab] = useState<Tab>("home");
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
@@ -321,7 +323,7 @@ export function V3Shell() {
   });
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [updateUnread, setUpdateUnread] = useState(() =>
-    hasUnreadUpdateV55(OFFICIAL_PATCH_HISTORY_V47[0].version),
+    hasUnreadUpdateV55(liveStatus.data.officialStore.version),
   );
   const [treeViewCommand, setTreeViewCommand] = useState<TreeViewCommandV53>();
   const desktopTreeSearchRef = useRef<HTMLInputElement>(null);
@@ -339,6 +341,10 @@ export function V3Shell() {
       return decoded?.ok ? decoded.result : null;
     },
   );
+
+  useEffect(() => {
+    setUpdateUnread(hasUnreadUpdateV55(liveStatus.data.officialStore.version));
+  }, [liveStatus.data.officialStore.version]);
   const [history, dispatchBase] = useReducer(
     (
       current: ReturnType<typeof createPlannerHistoryV3>,
@@ -949,6 +955,12 @@ export function V3Shell() {
           </div>
         </nav>
         <div className="v3-header-actions">
+          <LiveDataIndicatorV62
+            status={liveStatus}
+            canonicalVersion={gameDataV3.manifest.clientVersion}
+            locale={locale}
+            onOpen={() => openTab("updates")}
+          />
           <button className="d60-account-button" type="button" onClick={() => openTab("account")}>{tabLabel("account", locale)}</button>
           <button
             className="v53-desktop-credit"
@@ -1820,7 +1832,7 @@ export function V3Shell() {
         />
       )}
 
-      {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} gold={Math.max(0,resources.remaining.gold)} core={Math.max(0,resources.remaining.stone)} solarCore={Math.max(0,resources.remaining.solarCore??0)} plannedNodes={Object.keys(state.simulatedRanks).length} targetDiceId={state.scenario.diceId} activeDeckIds={activeDeckIds} />}
+      {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} gold={Math.max(0,resources.remaining.gold)} core={Math.max(0,resources.remaining.stone)} solarCore={Math.max(0,resources.remaining.solarCore??0)} plannedNodes={Object.keys(state.simulatedRanks).length} targetDiceId={state.scenario.diceId} activeDeckIds={activeDeckIds} liveStatus={liveStatus} />}
 
       {tab === "account" && (
         <AccountIntelligenceView
@@ -2396,6 +2408,8 @@ export function V3Shell() {
           locale={locale}
           activeDeckIds={activeDeckIds}
           state={state}
+          liveStatus={liveStatus}
+          onRefreshLiveData={liveStatus.refresh}
           onUpdateSeen={() => setUpdateUnread(false)}
         />
       )}

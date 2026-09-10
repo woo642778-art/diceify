@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
 
 permissions:
   contents: read
@@ -26,6 +28,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Refresh official and public live data
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: npm run sync:live-data
       - name: Validate static IPA extractor
         run: python3 -m unittest discover tools/rd2-extract/tests -p 'test_*.py'
       - name: Install dependencies
