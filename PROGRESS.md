@@ -1,9 +1,9 @@
 # Progress: Diceify 연속형 대기감 배경과 Cloudflare 이전
 
-- Status: active
-- Milestone: 5/6 (83%)
-- Updated: 2026-09-10T14:35:54
-- Current work: Cloudflare Pages 루트 base, SPA fallback, PWA 색상·경로, 연결 문서를 준비했고 로컬 HTTP에서 루트·manifest·v4 아트·딥링크가 모두 200임을 확인했습니다. Wrangler 계정 인증만 외부 단계로 남았습니다.
+- Status: completed
+- Milestone: 6/6 (100%)
+- Updated: 2026-09-10T14:42:15
+- Current work: 커밋 3de2b35의 GitHub Actions 검증과 Pages 배포가 성공했고, 라이브 데스크톱·모바일에서 v4 아트, 연속형 히어로, 루트 폭과 자산 경로를 최종 확인했습니다. Cloudflare Pages는 코드 준비가 끝났으며 계정에서 GitHub 저장소 연결만 남았습니다.
 
 ## Log
 - 2026-09-10T02:03:59 | 1/6 | 기존 라이브 화면 5개 뷰포트 캡처, 레퍼런스 비교, 헤더·히어로·원본 아트의 절단 원인과 배포 경로를 확인했습니다.
@@ -11,3 +11,4 @@
 - 2026-09-10T14:25:58 | 3/6 | 요청된 7개 뷰포트에서 3차 시각 패스를 완료했고, 중앙 명암 이음까지 수정한 v4 아트를 적용했습니다. 가로 오버플로와 헤더 스크롤 상태도 브라우저에서 확인했습니다.
 - 2026-09-10T14:35:11 | 4/6 | Node 22.22.0에서 추출기 15개, 앱 260개, Worker 20개, 타입 검사, 두 base 빌드와 Playwright 57개 통과·7개 의도적 제외를 확인했습니다.
 - 2026-09-10T14:35:54 | 5/6 | Cloudflare Pages 루트 base, SPA fallback, PWA 색상·경로, 연결 문서를 준비했고 로컬 HTTP에서 루트·manifest·v4 아트·딥링크가 모두 200임을 확인했습니다. Wrangler 계정 인증만 외부 단계로 남았습니다.
+- 2026-09-10T14:42:15 | 6/6 | 커밋 3de2b35의 GitHub Actions 검증과 Pages 배포가 성공했고, 라이브 데스크톱·모바일에서 v4 아트, 연속형 히어로, 루트 폭과 자산 경로를 최종 확인했습니다. Cloudflare Pages는 코드 준비가 끝났으며 계정에서 GitHub 저장소 연결만 남았습니다.
