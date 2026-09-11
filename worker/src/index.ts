@@ -10,6 +10,8 @@ import { communitySignal, rebuildCommunityDeckSegment, rebuildCommunityDeckSegme
 import { runScheduledMaintenance } from "./domain/maintenance";
 import { cookie, cookieValue, createApplicationSession, currentSession, randomToken, sha256, verifyGoogleIdToken, verifyTurnstile } from "./security";
 import type { Env, SessionUser } from "./types";
+import { aiAnalysisRequestSchema } from "./ai/schemas";
+import { createDiceifyAIProvider, HostedAiError } from "./ai/provider";
 
 type AppVariables = { user: SessionUser };
 type AppEnv = { Bindings: Env; Variables: AppVariables };
@@ -55,6 +57,55 @@ async function deckFingerprint(deck: readonly string[]) {
 app.get("/api/v1/health", async (c) => {
   const database = await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
   return c.json({ ok: database?.ok === 1, authConfigured:Boolean(c.env.GOOGLE_CLIENT_ID && c.env.GOOGLE_CLIENT_SECRET),environment: c.env.APP_ENV, gameDataVersion: c.env.GAME_DATA_VERSION, algorithmVersion: c.env.ALGORITHM_VERSION });
+});
+
+function aiCorsHeaders(origin: string) {
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+}
+
+app.options("/api/v1/ai", (c) => {
+  const origin = c.req.header("Origin") ?? "";
+  if (!origin || origin !== c.env.APP_ORIGIN) return c.json({ error: "origin_failed" }, 403);
+  return new Response(null, { status: 204, headers: aiCorsHeaders(origin) });
+});
+
+app.post("/api/v1/ai", async (c) => {
+  const origin = c.req.header("Origin");
+  if (origin && origin !== c.env.APP_ORIGIN) return c.json({ error: "origin_failed" }, 403);
+  const contentLength = Number(c.req.header("Content-Length") ?? "0");
+  if (contentLength > 64_000) return c.json({ error: "payload_too_large" }, 413);
+  if (!c.env.AI) return c.json({ error: "ai_unavailable" }, 503);
+  const input = await parseJson(c.req.raw, aiAnalysisRequestSchema, 64_000);
+  const ip = c.req.header("CF-Connecting-IP") ?? c.req.header("X-Real-IP") ?? "unknown";
+  const visitorKey = await sha256(`${ip}:${c.req.header("User-Agent")?.slice(0, 120) ?? ""}`);
+  if (!await consumeQuota(c.env.DB, `ai:minute:${visitorKey}`, 12, 60)) return c.json({ error: "rate_limited" }, 429);
+  const dailyBudget = Math.max(0, Math.floor(Number(c.env.AI_DAILY_BUDGET) || 0));
+  if (!await consumeQuota(c.env.DB, "ai:daily:global", dailyBudget, 86_400)) return c.json({ error: "quota_exhausted" }, 429);
+  const provider = createDiceifyAIProvider(c.env);
+  const headers = {
+    ...(origin ? aiCorsHeaders(origin) : {}),
+    "Cache-Control": "no-store",
+  };
+  try {
+    if (input.task === "parse_intent") return c.json({ intent: await provider.parseIntent(input) }, 200, headers);
+    const stream = await provider.explainResult(input);
+    return new Response(stream, { status: 200, headers: { ...headers, "Content-Type": "text/event-stream; charset=utf-8", "X-Accel-Buffering": "no" } });
+  } catch (error) {
+    if (error instanceof HostedAiError) {
+      const status = error.code === "timeout" ? 504 : error.code === "invalid_output" ? 422 : error.code === "quota" ? 429 : 503;
+      return c.json({ error: `ai_${error.code}` }, status, headers);
+    }
+    const message = error instanceof Error ? error.message : String(error);
+    const quota = /quota|rate|429|neuron/i.test(message);
+    console.error(jsonText({ event: "diceify_ai_error", task: input.task, code: quota ? "quota" : "provider" }));
+    return c.json({ error: quota ? "quota_exhausted" : "ai_provider_failed" }, quota ? 429 : 502, headers);
+  }
 });
 
 app.get("/auth/google/start", async (c) => {
@@ -122,6 +173,7 @@ const publicGetRoutes = new Set([
 ]);
 
 app.use("/api/v1/*", async (c, next) => {
+  if (c.req.path === "/api/v1/ai" && ["POST", "OPTIONS"].includes(c.req.method)) { await next(); return; }
   const isPublicRecommendation = c.req.method === "GET" && c.req.path.startsWith("/api/v1/recommendations/community/");
   if (c.req.method === "GET" && /^\/api\/v1\/builds\/[^/]+$/.test(c.req.path)) { await next(); return; }
   if ((c.req.method === "GET" && publicGetRoutes.has(c.req.path)) || isPublicRecommendation) {

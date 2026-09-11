@@ -113,8 +113,8 @@ function metricsFor(
   return metrics;
 }
 
-function routeScore(goal: IntelligenceRequestV63["goal"], metrics: IntelligenceMetricV63[], cost: TreeCost, reachesTargetDice: boolean) {
-  if (goal === "target-dice") return reachesTargetDice ? 1 : null;
+function routeScore(goal: IntelligenceRequestV63["goal"], metrics: IntelligenceMetricV63[], cost: TreeCost, targetDiceSteps: number) {
+  if (goal === "target-dice") return targetDiceSteps > 0 ? targetDiceSteps : null;
   if (goal === "pvp" || goal === "coop") return null;
   const practical = metrics.find((metric) => metric.id === "practical-dps" && metric.confidence === "verified");
   const basic = metrics.find((metric) => metric.id === "basic-attack-dps" && metric.confidence === "verified");
@@ -178,7 +178,6 @@ export function optimizeIntelligenceRouteV63(
   const visited = new Set<string>();
   const routes: IntelligenceRouteV63[] = [];
   let deduplicatedStates = 0;
-  let prunedDominated = 0;
   let truncated = false;
 
   const walk = (
@@ -198,8 +197,8 @@ export function optimizeIntelligenceRouteV63(
     visited.add(key);
     if (steps.length) {
       const metrics = metricsFor(request, data, ranks, simulate);
-      const reachesTargetDice = steps.some((step) => data.tree.find((node) => node.id === step.nodeId)?.targetId === request.input.diceId);
-      const score = routeScore(request.goal, metrics, spent, reachesTargetDice);
+      const targetDiceSteps = steps.filter((step) => data.tree.find((node) => node.id === step.nodeId)?.targetId === request.input.diceId).length;
+      const score = routeScore(request.goal, metrics, spent, targetDiceSteps);
       const unresolved = metrics.some((metric) => metric.limitation);
       const sourceRefs = [...new Set(steps.flatMap((step) => data.tree.find((node) => node.id === step.nodeId)?.sourceRefs ?? []))].sort();
       routes.push({
@@ -240,6 +239,7 @@ export function optimizeIntelligenceRouteV63(
   const partial = routes.filter((route) => route.score === null).sort(routeOrder);
   const primary = ranked[0] ?? partial[0] ?? null;
   const paretoFront = ranked.filter((candidate) => !ranked.some((other) => other !== candidate && dominates(other, candidate))).sort(routeOrder);
+  const prunedDominated = ranked.length - paretoFront.length;
   const alternatives = [...paretoFront.filter((route) => route.id !== primary?.id), ...ranked.filter((route) => route.id !== primary?.id && !paretoFront.includes(route))].slice(0, 3);
   const overlay: IntelligenceResultV63["overlay"] = {};
   for (const [nodeId, rank] of Object.entries(request.input.treeRanks)) if (rank > 0) overlay[nodeId] = "owned";

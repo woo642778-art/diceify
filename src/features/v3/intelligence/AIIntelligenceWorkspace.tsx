@@ -1,18 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CanonicalGameData, TreeCost } from "../../../game-data/types";
 import type { SimulationInputV3 } from "../../../simulation/engine/types";
 import { compareIntelligenceRoutesV63 } from "../../../intelligence/optimizer";
 import { runIntelligenceOptimizerV63 } from "../../../intelligence/optimizerClient";
-import {
-  buildGroundedPromptV63,
-  deterministicExplanationV63,
-  parseDeterministicIntentV63,
-  validateGroundedExplanationV63,
-} from "../../../intelligence/grounding";
+import { deterministicExplanationV63, parseAnalysisCommandV64 } from "../../../intelligence/grounding";
 import { currentMetaEvidenceV63 } from "../../../intelligence/meta";
-import { LOCAL_MODEL_OPTIONS_V63, localAiCapabilityV63, type LocalModelTierV63 } from "../../../intelligence/local-ai/modelCatalog";
-import { deleteSavedIntelligenceV63, loadSavedIntelligenceV63, saveIntelligenceRecommendationV63 } from "../../../intelligence/storage";
-import type { IntelligenceGoalV63, IntelligenceRequestV63, IntelligenceResultV63 } from "../../../intelligence/types";
+import { parseHostedIntentV64, streamHostedExplanationV64, type HostedAnalysisContextV64 } from "../../../intelligence/hostedAI";
+import { loadSavedIntelligenceV63, saveIntelligenceRecommendationV63 } from "../../../intelligence/storage";
+import type { IntelligenceCommandV64, IntelligenceGoalV63, IntelligenceRequestV63, IntelligenceResultV63, IntelligenceRouteV63 } from "../../../intelligence/types";
+import { DiceIcon } from "../shared/DiceIcon";
 
 interface AIIntelligenceWorkspaceProps {
   data: CanonicalGameData;
@@ -20,21 +16,42 @@ interface AIIntelligenceWorkspaceProps {
   input: SimulationInputV3;
   resources: TreeCost;
   activeDeckIds: string[];
+  hasProfile: boolean;
+  onOpenAccount: () => void;
   onApplyRanks: (ranks: Record<string, number>) => void;
   onViewTree: (result: IntelligenceResultV63) => void;
   onInspectNode: (result: IntelligenceResultV63, nodeId: string) => void;
 }
 
 const GOALS: Array<{ id: IntelligenceGoalV63; ko: string; en: string }> = [
+  { id: "target-dice", ko: "목표 주사위 경로", en: "Target dice route" },
   { id: "basic-dps", ko: "기본 공격 DPS", en: "Basic attack DPS" },
   { id: "resource-efficiency", ko: "재화 효율", en: "Resource efficiency" },
-  { id: "target-dice", ko: "목표 주사위 경로", en: "Target dice route" },
   { id: "pvp", ko: "대전", en: "PvP" },
   { id: "coop", ko: "협동", en: "Co-op" },
 ];
 
-function money(cost: TreeCost) {
-  return `${cost.gold.toLocaleString()} G · ${cost.stone.toLocaleString()} C · ${(cost.solarCore ?? 0).toLocaleString()} S`;
+const QUICK_ACTIONS = [
+  { label: "Core +50", delta: { stone: 50 } },
+  { label: "Core +100", delta: { stone: 100 } },
+  { label: "Gold +100K", delta: { gold: 100_000 } },
+] as const;
+
+function safeResource(value: number) {
+  return Math.max(0, Math.round(Number.isFinite(value) ? value : 0));
+}
+
+function addCost(base: TreeCost, delta: Partial<TreeCost>): TreeCost {
+  return {
+    gold: safeResource(base.gold + (delta.gold ?? 0)),
+    stone: safeResource(base.stone + (delta.stone ?? 0)),
+    solarCore: safeResource((base.solarCore ?? 0) + (delta.solarCore ?? 0)),
+  };
+}
+
+function costLine(cost: TreeCost, locale: "ko" | "en") {
+  const language = locale === "ko" ? "ko-KR" : "en-US";
+  return `${cost.gold.toLocaleString(language)} G · ${cost.stone.toLocaleString(language)} C · ${(cost.solarCore ?? 0).toLocaleString(language)} S`;
 }
 
 function nodeName(data: CanonicalGameData, nodeId: string, locale: "ko" | "en") {
@@ -42,219 +59,209 @@ function nodeName(data: CanonicalGameData, nodeId: string, locale: "ko" | "en") 
   return node?.nameKey ? data.localization[locale][node.nameKey] ?? nodeId : nodeId;
 }
 
-export function AIIntelligenceWorkspace({ data, locale, input, resources, activeDeckIds, onApplyRanks, onViewTree, onInspectNode }: AIIntelligenceWorkspaceProps) {
+function diceName(data: CanonicalGameData, diceId: string, locale: "ko" | "en") {
+  const dice = data.dice.find((entry) => entry.id === diceId);
+  return dice?.nameKey ? data.localization[locale][dice.nameKey] ?? diceId : diceId;
+}
+
+function resultMetric(route: IntelligenceRouteV63 | null) {
+  return route?.metrics.find((metric) => metric.absoluteGain > 0 && metric.percentGain !== null) ?? null;
+}
+
+function resultContext(result: IntelligenceResultV63, resources: TreeCost, targetDiceId: string, metaSnapshot?: string, selectedNodeId?: string): HostedAnalysisContextV64 {
+  const routeSummary = (route: IntelligenceRouteV63) => ({
+    nodeIds: route.steps.map((step) => step.nodeId), cost: route.cost, remaining: route.remaining,
+    gainPercent: resultMetric(route)?.percentGain ?? null, confidence: route.confidence,
+  });
+  return {
+    dataVersion: result.dataVersion, ...(metaSnapshot ? { metaSnapshot } : {}), goal: result.goal,
+    targetDiceId, resources, route: result.primary ? routeSummary(result.primary) : null,
+    alternatives: result.alternatives.slice(0, 3).map(routeSummary),
+    breakpoint: { decision: result.breakpoint.decision, shortage: result.breakpoint.shortage }, ...(selectedNodeId ? { selectedNodeId } : {}),
+  };
+}
+
+export function AIIntelligenceWorkspace({ data, locale, input, resources, activeDeckIds, hasProfile, onOpenAccount, onApplyRanks, onViewTree, onInspectNode }: AIIntelligenceWorkspaceProps) {
   const ko = locale === "ko";
   const dataVersion = `${data.manifest.clientVersion}:${data.manifest.sourceSha256.slice(0, 12)}`;
   const [goal, setGoal] = useState<IntelligenceGoalV63>("target-dice");
   const [horizon, setHorizon] = useState(4);
-  const [question, setQuestion] = useState(ko ? "지금 재화로 목표 주사위 경로 다음 4개를 어떻게 찍어야 해?" : "What are the next 4 purchases for my target dice?");
+  const [targetDiceId, setTargetDiceId] = useState(input.diceId);
+  const [resourceDelta, setResourceDelta] = useState<Partial<TreeCost>>({});
+  const [question, setQuestion] = useState("");
+  const [commandChips, setCommandChips] = useState<string[]>([]);
   const [result, setResult] = useState<IntelligenceResultV63 | null>(null);
-  const [calculating, setCalculating] = useState(false);
-  const [explanation, setExplanation] = useState<string>();
+  const [breakpointResult, setBreakpointResult] = useState<IntelligenceResultV63 | null>(null);
+  const [slowCalculation, setSlowCalculation] = useState(false);
   const [notice, setNotice] = useState<string>();
-  const [modelTier, setModelTier] = useState<LocalModelTierV63>("lite");
-  const [modelState, setModelState] = useState<"idle" | "loading" | "ready" | "generating" | "error">("idle");
-  const [modelProgress, setModelProgress] = useState(0);
-  const [modelProgressText, setModelProgressText] = useState("");
-  const [modelCached, setModelCached] = useState(false);
+  const [aiText, setAiText] = useState("");
+  const [aiState, setAiState] = useState<"idle" | "streaming" | "error">("idle");
+  const [selectedAlternativeId, setSelectedAlternativeId] = useState<string>();
+  const [selectedNodeId, setSelectedNodeId] = useState<string>();
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [saved, setSaved] = useState(loadSavedIntelligenceV63);
   const calculationRun = useRef(0);
-  const capability = useMemo(localAiCapabilityV63, []);
+  const breakpointRun = useRef(0);
+  const initialCalculation = useRef(true);
   const meta = useMemo(() => currentMetaEvidenceV63(data), [data]);
-  const selectedModel = LOCAL_MODEL_OPTIONS_V63.find((entry) => entry.tier === modelTier)!;
-  const diceName = data.dice.find((dice) => dice.id === input.diceId)?.nameKey;
-  const localizedDice = diceName ? data.localization[locale][diceName] ?? input.diceId : input.diceId;
+  const scenarioResources = useMemo(() => addCost(resources, resourceDelta), [resourceDelta, resources]);
+  const hypothetical = Boolean((resourceDelta.gold ?? 0) || (resourceDelta.stone ?? 0) || (resourceDelta.solarCore ?? 0));
+  const analysisInput = useMemo(() => ({ ...input, diceId: targetDiceId }), [input, targetDiceId]);
+  const request = useMemo<IntelligenceRequestV63>(() => ({ schemaVersion: 1, dataVersion, input: analysisInput, resources: scenarioResources, goal, maxPurchases: horizon, activeDeckIds }), [activeDeckIds, analysisInput, dataVersion, goal, horizon, scenarioResources]);
+  const requestSignature = useMemo(() => JSON.stringify(request), [request]);
+
+  useEffect(() => { setTargetDiceId(input.diceId); }, [input.diceId]);
+
+  const calculate = useCallback(async (nextRequest: IntelligenceRequestV63) => {
+    const run = ++calculationRun.current;
+    const slowTimer = window.setTimeout(() => { if (calculationRun.current === run) setSlowCalculation(true); }, 300);
+    try {
+      const next = await runIntelligenceOptimizerV63(data, nextRequest);
+      if (calculationRun.current !== run) return;
+      setResult(next); setAiText(""); setAiState("idle"); setSelectedAlternativeId(undefined);
+    } catch (error) {
+      if (calculationRun.current === run) setNotice(error instanceof Error ? error.message : String(error));
+    } finally {
+      window.clearTimeout(slowTimer);
+      if (calculationRun.current === run) setSlowCalculation(false);
+    }
+  }, [data]);
 
   useEffect(() => {
-    calculationRun.current += 1;
-    setCalculating(false);
-    setResult(null);
-    setExplanation(undefined);
-  }, [dataVersion, input.diceId, input.treeRanks, resources.gold, resources.stone, resources.solarCore]);
+    const delay = initialCalculation.current ? 0 : 180;
+    initialCalculation.current = false;
+    const timer = window.setTimeout(() => { void calculate(request); }, delay);
+    return () => window.clearTimeout(timer);
+  }, [calculate, requestSignature]);
 
-  const request = (nextGoal = goal, nextHorizon = horizon): IntelligenceRequestV63 => ({
-    schemaVersion: 1,
-    dataVersion,
-    input,
-    resources,
-    goal: nextGoal,
-    maxPurchases: nextHorizon,
-    activeDeckIds,
-  });
+  useEffect(() => {
+    const shortage = result?.breakpoint.shortage;
+    if (!result || !shortage || (!shortage.gold && !shortage.stone && !(shortage.solarCore ?? 0))) { setBreakpointResult(null); return; }
+    const run = ++breakpointRun.current;
+    const nextRequest = { ...request, resources: addCost(scenarioResources, shortage) };
+    void runIntelligenceOptimizerV63(data, nextRequest).then((next) => { if (breakpointRun.current === run) setBreakpointResult(next); }).catch(() => { if (breakpointRun.current === run) setBreakpointResult(null); });
+  }, [data, request, result, scenarioResources]);
 
-  const calculate = async (nextGoal = goal, nextHorizon = horizon) => {
-    const run = ++calculationRun.current;
-    setCalculating(true);
-    setNotice(undefined);
+  const applyCommand = (command: IntelligenceCommandV64) => {
+    if (command.goal) setGoal(command.goal);
+    if (command.maxPurchases) setHorizon(command.maxPurchases);
+    if (command.targetDiceId && data.dice.some((dice) => dice.id === command.targetDiceId)) setTargetDiceId(command.targetDiceId);
+    if (command.targetNodeId && data.tree.some((node) => node.id === command.targetNodeId)) setSelectedNodeId(command.targetNodeId);
+    setResourceDelta((current) => {
+      const next = { ...current };
+      for (const key of ["gold", "stone", "solarCore"] as const) {
+        if (command.resourceOverride?.[key] !== undefined) next[key] = safeResource(command.resourceOverride[key]!) - (resources[key] ?? 0);
+        if (command.resourceDelta?.[key] !== undefined) next[key] = (next[key] ?? 0) + command.resourceDelta[key]!;
+      }
+      return next;
+    });
+    const chips: string[] = [];
+    if (command.goal) chips.push(`${ko ? "목표" : "Goal"} · ${GOALS.find((entry) => entry.id === command.goal)?.[locale]}`);
+    if (command.maxPurchases) chips.push(`${ko ? "범위" : "Range"} · ${command.maxPurchases}`);
+    if (command.targetDiceId) chips.push(`${ko ? "주사위" : "Dice"} · ${diceName(data, command.targetDiceId, locale)}`);
+    if (command.targetNodeId) chips.push(`${ko ? "비교 노드" : "Node"} · ${nodeName(data, command.targetNodeId, locale)}`);
+    for (const [key, value] of Object.entries(command.resourceDelta ?? {})) chips.push(`${key === "stone" ? "Core" : key === "gold" ? "Gold" : "Solar"} · +${Number(value).toLocaleString()}`);
+    for (const [key, value] of Object.entries(command.resourceOverride ?? {})) chips.push(`${key === "stone" ? "Core" : key === "gold" ? "Gold" : "Solar"} · ${Number(value).toLocaleString()}`);
+    setCommandChips(chips);
+  };
+
+  const requestExplanation = async (prompt: string, currentResult = result) => {
+    if (!currentResult) return;
+    setAiText(""); setAiState("streaming"); setNotice(undefined);
     try {
-      const next = await runIntelligenceOptimizerV63(data, request(nextGoal, nextHorizon));
-      if (calculationRun.current !== run) return;
-      setResult(next);
-      setExplanation(deterministicExplanationV63(next, locale));
-    } catch (error) {
-      if (calculationRun.current !== run) return;
-      setNotice(error instanceof Error ? error.message : String(error));
-    } finally {
-      if (calculationRun.current === run) setCalculating(false);
+      await streamHostedExplanationV64({ task: "explain_route", locale, question: prompt, context: resultContext(currentResult, scenarioResources, targetDiceId, meta?.snapshotDate, selectedNodeId) }, (delta) => setAiText((current) => current + delta));
+      setAiState("idle");
+    } catch {
+      setAiState("error");
+      setNotice(ko ? "AI 설명을 불러오지 못했습니다. 계산 결과와 자동 근거는 그대로 유효합니다." : "AI explanation could not be loaded. The calculation and automatic evidence remain valid.");
     }
   };
 
   const ask = async () => {
-    let intent = parseDeterministicIntentV63(question);
-    if (modelState === "ready") {
-      try {
-        const client = await import("../../../intelligence/local-ai/client");
-        intent = await client.parseIntentWithLocalModelV63(question);
-      } catch {
-        setNotice(ko ? "로컬 의도 해석이 유효하지 않아 안전한 규칙 기반 해석을 사용했습니다." : "Local intent parsing was invalid, so the safe rule-based parser was used.");
-      }
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    setNotice(undefined);
+    const local = parseAnalysisCommandV64(trimmed, data);
+    if (local.confidence === "high") {
+      applyCommand(local); setQuestion("");
+      if (local.tool === "explain_result") setNotice(ko ? "검증된 계산 근거를 아래에 표시했습니다." : "Verified calculation evidence is shown below.");
+      return;
     }
-    const nextGoal = intent.goal ?? goal;
-    const nextHorizon = intent.maxPurchases ?? horizon;
-    setGoal(nextGoal);
-    setHorizon(nextHorizon);
-    await calculate(nextGoal, nextHorizon);
-  };
-
-  const loadModel = async () => {
-    if (!capability.supported) return;
-    setModelState("loading");
-    setModelProgress(0);
     try {
-      const client = await import("../../../intelligence/local-ai/client");
-      await client.startLocalModelV63(selectedModel, (progress) => {
-        setModelProgress(Math.max(0, Math.min(1, progress.progress)));
-        setModelProgressText(progress.text);
-      });
-      setModelState("ready");
-      setModelCached(true);
-    } catch (error) {
-      setModelState("error");
-      setModelProgressText(error instanceof Error ? error.message : String(error));
+      setAiState("streaming");
+      const knownNodeIds = [result?.primary?.steps[0]?.nodeId, ...((result?.alternatives ?? []).map((route) => route.steps[0]?.nodeId))].filter((value): value is string => Boolean(value));
+      const hosted = await parseHostedIntentV64({ locale, question: trimmed, current: { goal, targetDiceId, maxPurchases: horizon, resources: scenarioResources, knownDiceIds: data.dice.map((dice) => dice.id), knownNodeIds } });
+      applyCommand(hosted); setQuestion(""); setAiState("idle");
+      if (hosted.tool === "explain_result" && result) void requestExplanation(trimmed, result);
+    } catch {
+      setAiState("error");
+      setNotice(ko ? "문장을 확정적으로 해석하지 못했습니다. 조건 필드나 빠른 가정을 사용해 주세요." : "The request was ambiguous. Use the condition fields or quick assumptions.");
     }
   };
 
-  const deleteModel = async () => {
-    try {
-      const client = await import("../../../intelligence/local-ai/client");
-      await client.deleteLocalModelV63(selectedModel.modelId);
-      setModelCached(false);
-      setModelState("idle");
-      setModelProgress(0);
-      setModelProgressText(ko ? "브라우저 캐시에서 모델을 삭제했습니다." : "Deleted the model from browser cache.");
-    } catch (error) {
-      setModelState("error");
-      setModelProgressText(error instanceof Error ? error.message : String(error));
-    }
-  };
-
-  const explainLocally = async () => {
-    if (!result || modelState !== "ready") return;
-    setModelState("generating");
-    try {
-      const client = await import("../../../intelligence/local-ai/client");
-      const generated = await client.explainWithLocalModelV63(buildGroundedPromptV63(question, result, locale));
-      const grounded = validateGroundedExplanationV63(generated, result, data);
-      if (!grounded.ok || !generated) {
-        setExplanation(deterministicExplanationV63(result, locale));
-        setNotice(ko ? "로컬 모델 답변에 근거 없는 수치가 있어 계산 엔진 설명으로 대체했습니다." : "The local answer introduced ungrounded facts, so the deterministic explanation was used.");
-      } else setExplanation(generated);
-      setModelState("ready");
-    } catch (error) {
-      setModelState("error");
-      setNotice(error instanceof Error ? error.message : String(error));
-    }
-  };
+  const setResource = (kind: keyof TreeCost, value: number) => setResourceDelta((current) => ({ ...current, [kind]: safeResource(value) - (resources[kind] ?? 0) }));
+  const addResource = (delta: Partial<TreeCost>) => setResourceDelta((current) => ({ ...current, gold: (current.gold ?? 0) + (delta.gold ?? 0), stone: (current.stone ?? 0) + (delta.stone ?? 0), solarCore: (current.solarCore ?? 0) + (delta.solarCore ?? 0) }));
 
   const save = () => {
     if (!result) return;
-    const id = crypto.randomUUID();
-    saveIntelligenceRecommendationV63({
-      schemaVersion: 1,
-      id,
-      name: `${localizedDice} · ${GOALS.find((entry) => entry.id === goal)?.[locale]}`,
-      savedAt: new Date().toISOString(),
-      dataVersion,
-      request: request(),
-      result,
-    });
-    const nextSaved = loadSavedIntelligenceV63();
-    setSaved(nextSaved);
-    setNotice(ko ? `기기에 저장했습니다. 저장된 분석 ${nextSaved.length}개` : `Saved on this device. ${nextSaved.length} analyses stored.`);
+    saveIntelligenceRecommendationV63({ schemaVersion: 1, id: crypto.randomUUID(), name: `${diceName(data, targetDiceId, locale)} · ${GOALS.find((entry) => entry.id === goal)?.[locale]}`, savedAt: new Date().toISOString(), dataVersion, request, result });
+    setSaved(loadSavedIntelligenceV63()); setNotice(ko ? "현재 분석을 이 기기에 저장했습니다." : "Saved this analysis on this device.");
   };
-
   const restoreSaved = (id: string) => {
     const entry = saved.find((candidate) => candidate.id === id);
     if (!entry || entry.dataVersion !== dataVersion) return;
-    setGoal(entry.request.goal);
-    setHorizon(entry.request.maxPurchases);
+    setGoal(entry.request.goal); setHorizon(entry.request.maxPurchases); setTargetDiceId(entry.request.input.diceId);
+    setResourceDelta({ gold: entry.request.resources.gold - resources.gold, stone: entry.request.resources.stone - resources.stone, solarCore: (entry.request.resources.solarCore ?? 0) - (resources.solarCore ?? 0) });
     setResult(entry.result);
-    setExplanation(deterministicExplanationV63(entry.result, locale));
   };
 
-  const removeSaved = (id: string) => {
-    deleteSavedIntelligenceV63(id);
-    setSaved(loadSavedIntelligenceV63());
-  };
+  const primary = result?.primary ?? null;
+  const metric = resultMetric(primary);
+  const breakpointMetric = resultMetric(breakpointResult?.primary ?? null);
+  const selectedAlternative = result?.alternatives.find((route) => route.id === selectedAlternativeId);
+  const comparison = primary && selectedAlternative ? compareIntelligenceRoutesV63(primary, selectedAlternative) : null;
+  useEffect(() => {
+    if (selectedAlternative?.steps[0]?.nodeId) setSelectedNodeId(selectedAlternative.steps[0].nodeId);
+  }, [selectedAlternative]);
+  const deterministicText = (result ? deterministicExplanationV63(result, locale) : (ko ? "저장된 트리와 재화를 읽어 첫 추천을 계산하고 있습니다." : "Calculating the first recommendation from saved tree and resources."))
+    .replace(/\[node:([^\]]+)\]/g, (_, nodeId: string) => nodeName(data, nodeId, locale));
+  const directTargetSteps = primary?.steps.filter((step) => data.tree.find((node) => node.id === step.nodeId)?.targetId === targetDiceId).length ?? 0;
 
-  const primary = result?.primary;
-  const mainMetric = primary?.metrics.find((metric) => metric.absoluteGain > 0);
-  const renderedExplanation = explanation?.split(/(\[node:[^\]]+\])/g).map((part, index) => {
-    const match = part.match(/^\[node:([^\]]+)\]$/);
-    if (!match || !result) return part;
-    return <button className="v63-node-citation" type="button" key={`${part}:${index}`} onClick={() => onInspectNode(result, match[1])}>{part}</button>;
-  });
+  return <main className="v64-ai" data-testid="v64-ai-workspace">
+    <header className="v64-ai-hero"><small>DICEIFY INTELLIGENCE</small><h1>{ko ? "내 재화에서 가장 좋은 다음 선택" : "The best next move for my resources"}</h1><p>{ko ? "현재 덱, 트리, 재화를 기준으로 가능한 경로를 즉시 계산합니다." : "Instantly calculate feasible routes from your current deck, tree, and resources."}</p><div className="v64-meta-line"><span>Client v{data.manifest.clientVersion}</span><i />{meta ? <><span>Meta {meta.snapshotDate}</span><i /><span>n={meta.sampleSize}</span></> : <span>{ko ? "검증된 메타 표본 없음" : "No verified meta sample"}</span>}</div></header>
 
-  return <main className="v63-ai" data-testid="v63-ai-workspace">
-    <header className="v63-ai-hero">
-      <div><small>DICEIFY INTELLIGENCE · LOCAL FIRST</small><h1>{ko ? "결정의 근거를 먼저 계산합니다" : "Calculate the decision before explaining it"}</h1><p>{ko ? "숫자는 게임 엔진이 계산하고, 로컬 모델은 그 결과만 설명합니다. 모델이 비용이나 효율을 바꿀 수 없습니다." : "The game engine owns every number. The local model can only explain its result."}</p></div>
-      <dl><div><dt>{ko ? "클라이언트" : "Client"}</dt><dd>v{data.manifest.clientVersion}</dd></div><div><dt>{ko ? "데이터 해시" : "Data hash"}</dt><dd>{data.manifest.sourceSha256.slice(0, 8)}</dd></div><div><dt>{ko ? "메타 표본" : "Meta sample"}</dt><dd>{meta ? `${meta.snapshotDate} · n=${meta.sampleSize}` : (ko ? "없음" : "None")}</dd></div></dl>
-    </header>
+    <form className="v64-command" onSubmit={(event) => { event.preventDefault(); void ask(); }}><span aria-hidden="true">D</span><label className="sr-only" htmlFor="v64-command-input">{ko ? "Diceify에 분석 조건 질문" : "Ask Diceify"}</label><input id="v64-command-input" value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={ko ? "코어 100개 더 있으면 어디까지 찍을 수 있어?" : "What can I reach with 100 more Core?"} /><button type="submit">{ko ? "분석" : "Analyze"}</button></form>
+    {(commandChips.length > 0 || hypothetical) && <div className="v64-command-chips" aria-label={ko ? "해석된 조건" : "Interpreted conditions"}>{hypothetical && <b>{ko ? "가정 상태" : "Hypothetical"}</b>}{commandChips.map((chip) => <span key={chip}>{chip}</span>)}{hypothetical && <button type="button" onClick={() => { setResourceDelta({}); setCommandChips([]); }}>{ko ? "원래 상태로" : "Reset"}</button>}</div>}
 
-    <div className="v63-ai-grid">
-      <aside className="v63-ai-inputs">
-        <section><small>01 · DECISION INPUT</small><h2>{ko ? "내 조건" : "My constraints"}</h2><div className="v63-context-chip"><span>{localizedDice}</span><b>{activeDeckIds.length}/5 DECK</b></div>
-          <label>{ko ? "목표" : "Goal"}<select value={goal} onChange={(event) => setGoal(event.target.value as IntelligenceGoalV63)}>{GOALS.map((entry) => <option key={entry.id} value={entry.id}>{entry[locale]}</option>)}</select></label>
-          <label>{ko ? "정확 탐색 범위" : "Exact search horizon"}<select value={horizon} onChange={(event) => setHorizon(Number(event.target.value))}>{[2,3,4,5,6].map((value) => <option key={value} value={value}>{ko ? `다음 ${value}회 구매` : `Next ${value} purchases`}</option>)}</select></label>
-          <div className="v63-resource-stack"><span>{resources.gold.toLocaleString()} <i>GOLD</i></span><span>{resources.stone.toLocaleString()} <i>CORE</i></span><span>{(resources.solarCore ?? 0).toLocaleString()} <i>SOLAR</i></span></div>
-          <button className="is-primary" type="button" disabled={calculating} onClick={() => void calculate()}>{calculating ? (ko ? "전체 경로 탐색 중" : "Searching all paths") : (ko ? "경로 계산" : "Calculate route")}</button>
-        </section>
-        <section className="v63-ai-command"><small>ASK DICEIFY</small><label><span>{ko ? "자연어로 조건 변경" : "Change constraints naturally"}</span><textarea value={question} onChange={(event) => setQuestion(event.target.value)} /></label><button type="button" onClick={() => void ask()}>{ko ? "질문을 계산으로 변환" : "Convert question to calculation"}</button></section>
+    {!hasProfile && <section className="v64-profile-note"><div><b>{ko ? "현재는 로컬 플래너 상태로 분석 중" : "Using local planner state"}</b><span>{ko ? "계정을 연결하면 저장된 덱과 트리를 같은 분석에 이어서 사용할 수 있습니다." : "Connect a profile to carry saved decks and tree state into this analysis."}</span></div><button type="button" onClick={onOpenAccount}>{ko ? "내 계정 열기" : "Open account"}</button></section>}
+
+    <div className="v64-workspace">
+      <div className={`v64-rail-backdrop ${controlsOpen ? "is-open" : ""}`} onClick={() => setControlsOpen(false)} />
+      <aside className={`v64-control-rail ${controlsOpen ? "is-open" : ""}`} aria-label={ko ? "분석 조건" : "Analysis conditions"}>
+        <header><div><small>{ko ? "분석 조건" : "CONDITIONS"}</small><h2>{ko ? "내 조건" : "My setup"}</h2></div><button type="button" className="v64-rail-close" onClick={() => setControlsOpen(false)}>{ko ? "닫기" : "Close"}</button></header>
+        <section><h3>{ko ? "현재 덱" : "Current deck"}</h3><div className="v64-deck-row">{activeDeckIds.length ? activeDeckIds.slice(0, 5).map((id) => <DiceIcon key={id} diceId={id} label={diceName(data, id, locale)} />) : <span>{ko ? "저장된 덱 없음" : "No saved deck"}</span>}</div></section>
+        <section className="v64-field-stack"><label>{ko ? "분석 주사위" : "Target dice"}<select value={targetDiceId} onChange={(event) => setTargetDiceId(event.target.value)}>{data.dice.map((dice) => <option key={dice.id} value={dice.id}>{diceName(data, dice.id, locale)}</option>)}</select></label><label>{ko ? "목표" : "Goal"}<select value={goal} onChange={(event) => setGoal(event.target.value as IntelligenceGoalV63)}>{GOALS.map((entry) => <option key={entry.id} value={entry.id}>{entry[locale]}</option>)}</select></label><label>{ko ? "분석 범위" : "Search range"}<select value={horizon} onChange={(event) => setHorizon(Number(event.target.value))}>{[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value} value={value}>{ko ? `다음 ${value}회` : `Next ${value}`}</option>)}</select></label></section>
+        <section><h3>{ko ? "현재 재화" : "Resources"}</h3><div className="v64-resources"><label><span>GOLD</span><input aria-label="Gold" inputMode="numeric" value={scenarioResources.gold} onChange={(event) => setResource("gold", Number(event.target.value))} /></label><label><span>CORE</span><input aria-label="Core" inputMode="numeric" value={scenarioResources.stone} onChange={(event) => setResource("stone", Number(event.target.value))} /></label><label><span>SOLAR</span><input aria-label="Solar Core" inputMode="numeric" value={scenarioResources.solarCore ?? 0} onChange={(event) => setResource("solarCore", Number(event.target.value))} /></label></div><div className="v64-quick-actions">{QUICK_ACTIONS.map((action) => <button key={action.label} type="button" onClick={() => addResource(action.delta)}>{action.label}</button>)}</div></section>
+        <details><summary>{ko ? "분석 정보와 저장" : "Analysis info and saves"}</summary><p>{result?.search.scope ?? (ko ? "첫 계산 준비 중" : "Preparing first calculation")}</p><button type="button" onClick={() => void calculate(request)}>{ko ? "다시 계산" : "Recalculate"}</button><button type="button" disabled={!result} onClick={save}>{ko ? "분석 저장" : "Save analysis"}</button>{saved.slice(0, 3).map((entry) => <button type="button" key={entry.id} disabled={entry.dataVersion !== dataVersion} onClick={() => restoreSaved(entry.id)}>{entry.name}</button>)}</details>
       </aside>
 
-      <section className="v63-ai-route">
-        <header><div><small>02 · EXACT ROUTE</small><h2>{primary ? (ko ? "우선 투자 경로" : "Priority investment route") : (ko ? "계산 대기" : "Waiting for calculation")}</h2></div>{result && <span className={`v63-confidence is-${primary?.confidence ?? "partial"}`}>{primary?.confidence === "verified" ? (ko ? "검증됨" : "Verified") : (ko ? "부분 검증" : "Partial")}</span>}</header>
-        {!result && <div className="v63-empty"><b>01</b><p>{ko ? "목표와 탐색 범위를 정한 뒤 계산하세요. 입력 전에는 점수나 추천을 표시하지 않습니다." : "Set a goal and search horizon. No score or recommendation appears before calculation."}</p></div>}
-        {result && !primary && <div className="v63-empty"><b>00</b><p>{result.search.visitedStates > 1
-          ? (ko ? "실행 가능한 구매는 있지만, 현재 데이터로 검증된 성능 이득은 없습니다." : "Purchases are feasible, but the current data verifies no performance gain.")
-          : (ko ? "현재 재화로 실행 가능한 경로가 없습니다." : "No route is feasible with the current resources.")}</p></div>}
-        {primary && <>
-          <div className="v63-route-metric"><div><small>{mainMetric ? (mainMetric.id === "practical-dps" ? "PRACTICAL DPS" : "BASIC ATTACK DPS") : "VERIFIED PERFORMANCE"}</small><strong>{mainMetric?.percentGain !== null && mainMetric?.percentGain !== undefined ? `+${mainMetric.percentGain.toFixed(2)}%` : (ko ? "수치 미확정" : "Not quantified")}</strong></div><div><small>TOTAL COST</small><strong>{money(primary.cost)}</strong></div></div>
-          <ol className="v63-route-steps">{primary.steps.map((step, index) => <li key={`${step.nodeId}:${step.toRank}`}><span>{String(index + 1).padStart(2,"0")}</span><div><b>{nodeName(data, step.nodeId, locale)}</b><small>{step.fromRank} → {step.toRank} · {money(step.cost)}</small></div><button type="button" onClick={() => onInspectNode(result, step.nodeId)}>{ko ? "트리" : "Tree"}</button></li>)}</ol>
-          <div className="v63-route-actions"><button type="button" onClick={() => onViewTree(result)}>{ko ? "트리 오버레이" : "Tree overlay"}</button><button type="button" onClick={save}>{ko ? "분석 저장" : "Save analysis"}</button><button className="is-primary" type="button" onClick={() => onApplyRanks(primary.rankChanges)}>{ko ? "가상 계획에 적용" : "Apply to plan"}</button></div>
-        </>}
-        {result && <footer className="v63-search-proof"><span className={result.search.complete ? "" : "is-limited"}>{result.search.complete ? (ko ? "완전 탐색" : "Complete search") : (ko ? "범위 제한" : "Search capped")}</span><b>{result.search.visitedStates.toLocaleString()} states</b><small>{result.search.scope} · {result.search.elapsedMs.toFixed(1)} ms</small></footer>}
+      <section className="v64-result" aria-live="polite" data-optimizer-ms={result?.search.elapsedMs}>
+        <header className="v64-result-heading"><div><small>{ko ? "추천 결과" : "RECOMMENDATION"}</small><h2>{primary ? (ko ? "지금은 이 경로" : "Take this route now") : (ko ? "현재 조건의 결론" : "Current conclusion")}</h2></div><div className="v64-result-status">{slowCalculation && <span>{ko ? "재계산 중" : "Recalculating"}</span>}<b className={primary?.confidence === "verified" ? "is-verified" : ""}>{primary?.confidence === "verified" ? (ko ? "정확 계산" : "Exact calculation") : (ko ? "검증 범위 제한" : "Limited evidence")}</b></div></header>
+        {!result && <div className="v64-compact-loading"><span /><b>{ko ? "저장된 상태로 첫 추천을 계산하는 중" : "Calculating from saved state"}</b></div>}
+        {result && !primary && <div className="v64-compact-empty"><b>{result.search.visitedStates > 1 ? (ko ? "구매 가능한 노드는 있지만 검증된 성능 이득이 없습니다." : "Purchases exist, but no verified performance gain is available.") : (ko ? "현재 재화로 구매 가능한 경로가 없습니다." : "No route is affordable with current resources.")}</b>{result.breakpoint.nextCost && <span>{ko ? "다음 경로에 필요한 최소 부족분" : "Minimum shortage for the next route"}: {costLine(result.breakpoint.shortage, locale)}</span>}</div>}
+        {primary && result && <><div className="v64-route-hero"><div className="v64-route-copy"><span>{ko ? "현재 조건에서 가장 높은 검증 효율" : "Highest verified efficiency in this setup"}</span><strong>{metric?.percentGain !== null && metric?.percentGain !== undefined ? `+${metric.percentGain.toFixed(2)}%` : (ko ? "정량 계산 불가" : "Not quantifiable")}</strong><small>{metric ? (ko ? "게임 데이터와 시뮬레이션의 정확 계산" : "Exact game-data calculation") : (ko ? "비용과 선행 조건만 확정" : "Only costs and prerequisites verified")}</small></div><div className="v64-route-actions"><button type="button" onClick={() => onViewTree(result)}>{ko ? "트리에서 보기" : "View in tree"}</button><button type="button" className="is-primary" onClick={() => onApplyRanks(primary.rankChanges)}>{ko ? "경로 적용" : "Apply route"}</button></div></div>
+          <ol className="v64-route-strip">{primary.steps.map((step, index) => <li key={`${step.nodeId}:${step.toRank}`}><button type="button" onClick={() => onInspectNode(result, step.nodeId)}><span>{String(index + 1).padStart(2, "0")}</span><b>{nodeName(data, step.nodeId, locale)}</b><small>Lv.{step.fromRank} → {step.toRank}</small></button>{index < primary.steps.length - 1 && <i aria-hidden="true" />}</li>)}</ol>
+          <div className="v64-metrics"><article><span>{ko ? "예상 효율 변화" : "Expected gain"}</span><b>{metric?.percentGain !== null && metric?.percentGain !== undefined ? `+${metric.percentGain.toFixed(2)}%` : "N/A"}</b><small>{ko ? "정확 계산" : "Exact"}</small></article><article><span>{ko ? "소모 재화" : "Cost"}</span><b>{primary.cost.stone.toLocaleString()} C</b><small>{primary.cost.gold.toLocaleString()} G · {(primary.cost.solarCore ?? 0).toLocaleString()} S</small></article><article><span>{ko ? "남은 재화" : "Remaining"}</span><b>{primary.remaining.stone.toLocaleString()} C</b><small>{primary.remaining.gold.toLocaleString()} G · {(primary.remaining.solarCore ?? 0).toLocaleString()} S</small></article><article><span>{ko ? "다음 Breakpoint" : "Next breakpoint"}</span><b>+{result.breakpoint.shortage.stone.toLocaleString()} C</b><small>+{result.breakpoint.shortage.gold.toLocaleString()} G · +{(result.breakpoint.shortage.solarCore ?? 0).toLocaleString()} S</small></article></div></>}
+
+        {result && <section className="v64-why"><header><div><small>{ko ? "자동 계산 근거" : "CALCULATION EVIDENCE"}</small><h3>{ko ? "왜 이 경로인가?" : "Why this route?"}</h3></div><button type="button" disabled={aiState === "streaming"} onClick={() => void requestExplanation(ko ? "현재 추천 경로가 선택된 이유를 간결하게 설명해줘." : "Briefly explain why this route was selected.")}>{aiState === "streaming" ? (ko ? "근거 정리 중" : "Summarizing") : (ko ? "AI에게 이유 묻기" : "Ask AI why")}</button></header><div className="v64-evidence-list"><p><b>{ko ? "예산 충족" : "Within budget"}</b><span>{primary ? (ko ? "모든 단계가 현재 세 재화 범위 안에 있습니다." : "Every step stays within all three resource budgets.") : (ko ? "현재 예산에서 실행 가능한 경로가 없습니다." : "No feasible route in the current budget.")}</span></p><p><b>{ko ? "목표 연결" : "Target link"}</b><span>{directTargetSteps > 0 ? (ko ? `선택한 주사위에 직접 적용되는 단계가 ${directTargetSteps}개 포함됩니다.` : `${directTargetSteps} steps directly affect the selected dice.`) : (ko ? "목표 효과의 전체 수치가 검증되지 않아 선행 조건을 우선 확인했습니다." : "Target effect values are incomplete, so prerequisites are prioritized.")}</span></p><p><b>{ko ? "탐색 근거" : "Search proof"}</b><span>{result.search.complete ? (ko ? `${result.search.visitedStates.toLocaleString()}개 상태를 탐색해 현재 범위의 최적성을 확인했습니다.` : `Checked ${result.search.visitedStates.toLocaleString()} states for this horizon.`) : (ko ? "안전 상한 안에서 찾은 현재 최선 후보입니다." : "Best candidate within the safety cap.")}</span></p></div><p className="v64-deterministic-copy">{deterministicText}</p>{(aiText || aiState === "streaming" || aiState === "error") && <div className={`v64-ai-explanation is-${aiState}`}><b>{ko ? "AI 설명" : "AI explanation"}</b><p>{aiText || (aiState === "streaming" ? (ko ? "근거 정리 중" : "Summarizing evidence") : (ko ? "자동 계산 근거로 대체했습니다." : "Using automatic evidence instead."))}<i aria-hidden="true" /></p></div>}</section>}
+
+        {result && <section className="v64-decision-grid"><article className={result.breakpoint.decision === "spend" ? "is-recommended" : ""}><small>{ko ? "지금 투자" : "Spend now"}</small><h3>{metric?.percentGain !== null && metric?.percentGain !== undefined ? `+${metric.percentGain.toFixed(2)}%` : (ko ? "검증 수치 없음" : "No verified gain")}</h3><p>{primary ? `${primary.cost.stone.toLocaleString()} Core ${ko ? "사용" : "spent"}` : (ko ? "실행 경로 없음" : "No route")}</p></article><article className={result.breakpoint.decision === "save" ? "is-recommended" : ""}><small>{ko ? "조금 더 모으기" : "Save a little more"}</small><h3>{breakpointMetric?.percentGain !== null && breakpointMetric?.percentGain !== undefined ? `+${breakpointMetric.percentGain.toFixed(2)}%` : `+${result.breakpoint.shortage.stone.toLocaleString()} Core`}</h3><p>{ko ? "다음 구매 가능 구간" : "Next affordable breakpoint"}</p>{Boolean(result.breakpoint.shortage.gold || result.breakpoint.shortage.stone || result.breakpoint.shortage.solarCore) && <button type="button" onClick={() => addResource(result.breakpoint.shortage)}>{ko ? "이 재화를 가정" : "Try this budget"}</button>}</article></section>}
+
+        {result && result.alternatives.length > 0 && <section className="v64-alternatives"><header><small>{ko ? "다른 선택" : "ALTERNATIVES"}</small><h3>{ko ? "대안 경로" : "Alternative routes"}</h3></header><div>{result.alternatives.slice(0, 3).map((route, index) => { const alternativeMetric = resultMetric(route); return <button type="button" className={selectedAlternativeId === route.id ? "is-selected" : ""} key={route.id} onClick={() => setSelectedAlternativeId(route.id)}><small>{index === 0 ? (ko ? "효율 대안" : "Efficiency") : index === 1 ? (ko ? "경로 대안" : "Route") : (ko ? "재화 대안" : "Budget")}</small><b>{route.steps.map((step) => nodeName(data, step.nodeId, locale)).join(" → ")}</b><span>{alternativeMetric?.percentGain !== null && alternativeMetric?.percentGain !== undefined ? `+${alternativeMetric.percentGain.toFixed(2)}%` : (ko ? "정량 계산 불가" : "Not quantifiable")} · {route.cost.stone.toLocaleString()} C</span></button>; })}</div>{comparison && selectedAlternative && <div className="v64-comparison"><b>{ko ? "이 경로를 대신 선택하면" : "If you choose this route"}</b><span>Gold {comparison.goldDelta > 0 ? "+" : ""}{comparison.goldDelta.toLocaleString()} · Core {comparison.stoneDelta > 0 ? "+" : ""}{comparison.stoneDelta.toLocaleString()} · Solar {comparison.solarCoreDelta > 0 ? "+" : ""}{comparison.solarCoreDelta.toLocaleString()}</span><button type="button" onClick={() => void requestExplanation(ko ? "선택한 대안이 추천 경로보다 덜 유리한 이유를 설명해줘." : "Explain why the selected alternative is less favorable.")}>{ko ? "AI에게 이유 묻기" : "Ask AI why"}</button></div>}</section>}
+        {result && <details className="v64-analysis-details"><summary>{ko ? "분석 기준 상세" : "Analysis details"}</summary><dl><div><dt>{ko ? "클라이언트" : "Client"}</dt><dd>v{data.manifest.clientVersion}</dd></div><div><dt>{ko ? "데이터 해시" : "Data hash"}</dt><dd>{data.manifest.sourceSha256.slice(0, 12)}</dd></div><div><dt>{ko ? "탐색" : "Search"}</dt><dd>{result.search.algorithm} · {result.search.visitedStates.toLocaleString()}</dd></div><div><dt>{ko ? "메타" : "Meta"}</dt><dd>{meta ? `${meta.snapshotDate} · n=${meta.sampleSize}` : (ko ? "적용 안 함" : "Not applied")}</dd></div></dl>{result.limitations.map((limitation) => <p key={limitation}>{limitation}</p>)}</details>}
       </section>
-
-      <aside className="v63-ai-analysis">
-        <section><small>03 · EVIDENCE</small><h2>{ko ? "왜 이 경로인가" : "Why this route"}</h2><p className="v63-explanation">{renderedExplanation ?? (ko ? "계산 후 비용, 선행 조건, 확인 가능한 성능 변화만 설명합니다." : "Only verified costs, prerequisites, and measurable changes are explained after calculation.")}</p>
-          {result?.limitations.map((limitation) => <p className="v63-limitation" key={limitation}>{limitation}</p>)}
-        </section>
-        {result && <section><small>ALTERNATIVES · TRADE-OFFS</small><div className="v63-alternatives">{result.alternatives.length ? result.alternatives.map((route, index) => { const compared = primary ? compareIntelligenceRoutesV63(route, primary) : null; return <article key={route.id}><b>{ko ? `대안 ${index + 1}` : `Alternative ${index + 1}`}</b><span>{money(route.cost)}</span><small>{result.goal === "target-dice"
-          ? (ko ? "동일 목표 도달 · 비용 구조 비교" : "Same target · compare cost mix")
-          : compared?.scoreDelta == null
-            ? (ko ? "성능 비교 미확정" : "Performance comparison unavailable")
-            : `${compared.scoreDelta > 0 ? "+" : ""}${compared.scoreDelta.toFixed(2)} score`}</small></article>; }) : <p>{ko ? "동일 조건의 비지배 대안이 없습니다." : "No non-dominated alternative in this scope."}</p>}</div></section>}
-        {result && <section className="v63-breakpoint"><small>RESOURCE FRONTIER</small><h3>{result.breakpoint.decision === "spend" ? (ko ? "지금 투자 가능" : "Spend now") : result.breakpoint.decision === "save" ? (ko ? "다음 경계까지 모으기" : "Save to the next frontier") : (ko ? "검증값 대기" : "Await verified metrics")}</h3>{result.breakpoint.nextCost && <p>{ko ? "최소 부족분" : "Minimum shortage"}: {money(result.breakpoint.shortage)}</p>}</section>}
-        <section className="v63-local-model"><small>LOCAL EXPLANATION MODEL</small><h2>{ko ? "기기 안에서만 설명" : "Explain on this device"}</h2><select value={modelTier} disabled={modelState === "loading" || modelState === "generating"} onChange={(event) => setModelTier(event.target.value as LocalModelTierV63)}>{LOCAL_MODEL_OPTIONS_V63.map((model) => <option key={model.tier} value={model.tier}>{model.label}</option>)}</select><p>{selectedModel.approximateDownload} · {selectedModel.license}</p>
-          {!capability.supported ? <p className="v63-limitation">{capability.reason} {ko ? "계산 엔진 설명을 사용합니다." : "Using the deterministic explanation."}</p> : modelState === "ready" || modelState === "generating" ? <button type="button" disabled={!result || modelState === "generating"} onClick={() => void explainLocally()}>{modelState === "generating" ? (ko ? "설명 생성 중" : "Generating") : (ko ? "로컬 모델로 다시 설명" : "Explain with local model")}</button> : <button type="button" disabled={modelState === "loading"} onClick={() => void loadModel()}>{modelState === "loading" ? (ko ? `다운로드 ${Math.round(modelProgress * 100)}%` : `Downloading ${Math.round(modelProgress * 100)}%`) : (ko ? "모델 다운로드 및 시작" : "Download and start")}</button>}
-          {modelCached && <button className="v63-delete-model" type="button" onClick={() => void deleteModel()}>{ko ? "다운로드한 모델 삭제" : "Delete downloaded model"}</button>}
-          {modelProgressText && <small className="v63-model-progress">{modelProgressText}</small>}
-        </section>
-        {saved.length > 0 && <section className="v63-saved"><small>SAVED · VERSIONED</small><h2>{ko ? "저장한 분석" : "Saved analyses"}</h2>{saved.slice(0,4).map((entry) => { const current = entry.dataVersion === dataVersion; return <article key={entry.id}><div><b>{entry.name}</b><small>{current ? new Date(entry.savedAt).toLocaleDateString(locale) : (ko ? "데이터 업데이트로 다시 계산 필요" : "Recalculation required after data update")}</small></div><button type="button" disabled={!current} onClick={() => restoreSaved(entry.id)}>{ko ? "열기" : "Open"}</button><button type="button" onClick={() => removeSaved(entry.id)}>{ko ? "삭제" : "Delete"}</button></article>; })}</section>}
-      </aside>
     </div>
-    {meta && <footer className="v63-meta-disclosure"><b>{ko ? "메타 정보 범위" : "Meta evidence scope"}</b><span>{meta.limitation}</span><small>v{meta.clientVersion} · {meta.source} · {meta.snapshotDate} · n={meta.sampleSize}</small></footer>}
-    {notice && <div className="v63-notice" role="status">{notice}</div>}
+    <button className="v64-mobile-conditions" type="button" onClick={() => setControlsOpen(true)}>{ko ? "내 조건" : "Conditions"}</button>
+    {notice && <div className="v64-notice" role="status">{notice}<button type="button" aria-label={ko ? "알림 닫기" : "Dismiss"} onClick={() => setNotice(undefined)}>×</button></div>}
   </main>;
 }

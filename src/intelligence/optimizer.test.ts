@@ -67,6 +67,15 @@ describe("Diceify deterministic intelligence optimizer", () => {
     expect(result.primary?.cost.gold).toBe(5);
   });
 
+  it("does not repurchase owned ranks and uses the requested horizon for target progress", () => {
+    const rankedRoot = { ...node("root", 2), maxRank: 2, costsByRank: [{ gold: 2, stone: 0 }, { gold: 3, stone: 0 }] };
+    const data = fixture([rankedRoot, node("child", 3, [{ nodeId: "root", minRank: 2 }])]);
+    const ownedInput = { ...input, treeRanks: { root: 1 } };
+    const result = optimizeIntelligenceRouteV63(data, request({ input: ownedInput, goal: "target-dice", maxPurchases: 2 }), { simulate: simulation((ranks) => Object.values(ranks).reduce((sum, rank) => sum + rank, 0)) });
+    expect(result.primary?.steps).toMatchObject([{ nodeId: "root", fromRank: 1, toRank: 2 }, { nodeId: "child", fromRank: 0, toRank: 1 }]);
+    expect(result.primary?.remaining.gold).toBeGreaterThanOrEqual(0);
+  });
+
   it("uses stable node-id ordering for equal outcomes", () => {
     const result = optimizeIntelligenceRouteV63(fixture([node("b", 5), node("a", 5)]), request({ maxPurchases: 1 }), { simulate: simulation((ranks) => ranks.a || ranks.b ? 5 : 0) });
     expect(result.primary?.steps[0].nodeId).toBe("a");

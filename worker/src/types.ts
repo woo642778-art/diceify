@@ -9,6 +9,8 @@ export interface Env {
   GAME_DATA_VERSION: string;
   ALGORITHM_VERSION: string;
   AI_DAILY_BUDGET: string;
+  AI_MODEL?: string;
+  AI_TIMEOUT_MS?: string;
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   SESSION_SECRET?: string;

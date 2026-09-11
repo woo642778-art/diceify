@@ -1406,7 +1406,7 @@ test("V4.7 saves local profiles and creates a dedicated shared result page", asy
   expect(errors).toEqual([]);
 });
 
-test("V6.3 keeps AI empty before calculation and produces an evidence-bound route", async ({
+test("V6.4 produces an immediate evidence-bound route without local model setup", async ({
   page,
   isMobile,
 }) => {
@@ -1414,21 +1414,17 @@ test("V6.3 keeps AI empty before calculation and produces an evidence-bound rout
   await page.goto("/diceify/");
   await openShellTab(page, "AI 분석");
   await setTreeResources(page, "100000", "100");
-  const workspace = page.getByTestId("v63-ai-workspace");
+  const workspace = page.getByTestId("v64-ai-workspace");
   await expect(workspace).toBeVisible();
-  await expect(workspace).toContainText("입력 전에는 점수나 추천을 표시하지 않습니다");
-  await workspace.locator("select").first().selectOption("target-dice");
-  await workspace.getByRole("button", { name: "경로 계산", exact: true }).click();
-  await expect(workspace).toContainText("우선 투자 경로");
-  await expect(workspace).toContainText("완전 탐색");
-  await expect(workspace).toContainText("[node:");
-  await expect(workspace).toContainText("사용률은 강함이나 승률을 뜻하지 않으며");
-  await expect(workspace.getByRole("button", { name: "모델 다운로드 및 시작" })).toBeVisible();
+  await expect(workspace).toContainText("지금은 이 경로");
+  await expect(workspace).toContainText("왜 이 경로인가?");
+  await expect(workspace.getByRole("button", { name: "AI에게 이유 묻기" })).toBeVisible();
+  await expect(workspace).not.toContainText(/모델 다운로드|WebGPU|LOCAL FIRST/);
   await page.screenshot({
     path: `test-results/qa-v63-ai-${isMobile ? "mobile" : "desktop"}.png`,
     fullPage: true,
   });
-  await workspace.getByRole("button", { name: "트리 오버레이" }).click();
+  await workspace.getByRole("button", { name: "트리에서 보기" }).click();
   await expect(page.getByTestId("v3-tree-view")).toBeVisible();
   await expect(page.locator('[data-ai-state="next"]')).toHaveCount(1);
   expect(errors).toEqual([]);

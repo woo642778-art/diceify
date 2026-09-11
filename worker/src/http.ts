@@ -1,7 +1,7 @@
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 
-export async function parseJson<T extends z.ZodType>(request: Request, schema: T): Promise<z.infer<T>> {
+export async function parseJson<T extends z.ZodType>(request: Request, schema: T, maxBytes = 256_000): Promise<z.infer<T>> {
   if (!request.headers.get("Content-Type")?.includes("application/json")) throw new HTTPException(415, { message: "json_required" });
   const reader = request.body?.getReader();
   if (!reader) throw new HTTPException(400, { message: "invalid_json" });
@@ -11,7 +11,7 @@ export async function parseJson<T extends z.ZodType>(request: Request, schema: T
     const result = await reader.read();
     if (result.done) break;
     length += result.value.byteLength;
-    if (length > 256_000) { await reader.cancel(); throw new HTTPException(413, { message: "payload_too_large" }); }
+    if (length > maxBytes) { await reader.cancel(); throw new HTTPException(413, { message: "payload_too_large" }); }
     chunks.push(result.value);
   }
   const bytes = new Uint8Array(length);
@@ -23,6 +23,7 @@ export async function parseJson<T extends z.ZodType>(request: Request, schema: T
 }
 
 export async function consumeQuota(db: D1Database, key: string, limit: number, seconds: number) {
+  if (!Number.isFinite(limit) || limit <= 0) return false;
   const current = Math.floor(Date.now() / 1000);
   const bucket = Math.floor(current / seconds);
   const result = await db.prepare("INSERT INTO rate_windows(key,count,expires_at) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 WHERE count<? RETURNING count")

@@ -1866,6 +1866,8 @@ export function V3Shell() {
               solarCore: Math.max(0, resources.remaining.solarCore ?? 0),
             }}
             activeDeckIds={activeDeckIds}
+            hasProfile={Boolean(currentTwin.identity)}
+            onOpenAccount={() => setTab("account")}
             onApplyRanks={(ranks) => dispatch({ type: "applyRoute", ranks })}
             onViewTree={(result) => {
               setIntelligenceOverlay(result.overlay);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CanonicalGameData } from "../game-data/types";
-import { deterministicExplanationV63, parseDeterministicIntentV63, validateGroundedExplanationV63 } from "./grounding";
+import { gameDataV3 } from "../game-data/load";
+import { deterministicExplanationV63, parseAnalysisCommandV64, parseDeterministicIntentV63, parseKoreanNumberV64, validateGroundedExplanationV63 } from "./grounding";
 import type { IntelligenceResultV63 } from "./types";
 
 const data = { tree: [{ id: "n" }] } as unknown as CanonicalGameData;
@@ -14,6 +15,23 @@ const result = {
 describe("local explanation grounding", () => {
   it("parses intent without requiring a model", () => {
     expect(parseDeterministicIntentV63("효율 기준으로 다음 3개를 비교해줘")).toMatchObject({ tool: "compare_routes", goal: "resource-efficiency", maxPurchases: 3 });
+  });
+
+  it("parses Korean units, resource deltas, horizons, modes, and localized dice without AI", () => {
+    expect(parseKoreanNumberV64("20만")).toBe(200_000);
+    expect(parseKoreanNumberV64("1.5만")).toBe(15_000);
+    expect(parseAnalysisCommandV64("코어 100개 더 있고 다음 4개", gameDataV3)).toMatchObject({
+      confidence: "high", maxPurchases: 4, resourceDelta: { stone: 100 },
+    });
+    expect(parseAnalysisCommandV64("골드 20만 협동 기준", gameDataV3)).toMatchObject({
+      confidence: "high", goal: "coop", resourceOverride: { gold: 200_000 },
+    });
+    expect(parseAnalysisCommandV64("포식 덱 기준으로 다시 계산", gameDataV3)).toMatchObject({
+      confidence: "high", targetDiceId: "predator",
+    });
+    expect(parseAnalysisCommandV64("포싯 기준", gameDataV3).targetDiceId).toBe("predator");
+    expect(parseAnalysisCommandV64("노드 5007 대신 비교", gameDataV3).targetNodeId).toBe("5007");
+    expect(parseAnalysisCommandV64("오른쪽은?", gameDataV3).confidence).toBe("ambiguous");
   });
 
   it("accepts only known node citations and authoritative numbers", () => {

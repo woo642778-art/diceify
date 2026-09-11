@@ -109,3 +109,18 @@ export interface SavedIntelligenceRecommendationV63 {
   request: IntelligenceRequestV63;
   result: IntelligenceResultV63;
 }
+
+export type IntelligenceResourceKindV64 = "gold" | "stone" | "solarCore";
+
+export interface IntelligenceCommandV64 {
+  tool: "calculate_route" | "compare_routes" | "find_breakpoint" | "explain_result";
+  goal?: IntelligenceGoalV63;
+  maxPurchases?: number;
+  targetDiceId?: string;
+  targetNodeId?: string;
+  comparisonNodeId?: string;
+  resourceDelta?: Partial<Record<IntelligenceResourceKindV64, number>>;
+  resourceOverride?: Partial<Record<IntelligenceResourceKindV64, number>>;
+  confidence: "high" | "ambiguous";
+  matched: string[];
+}
