@@ -63,6 +63,7 @@ export function parseAnalysisCommandV64(question: string, data: CanonicalGameDat
   const matched: string[] = [];
   const resourceDelta: IntelligenceCommandV64["resourceDelta"] = {};
   const resourceOverride: IntelligenceCommandV64["resourceOverride"] = {};
+  let diceQuery = normalized;
   for (const [kind, aliases] of Object.entries(RESOURCE_ALIASES) as Array<[keyof typeof RESOURCE_ALIASES, readonly string[]]>) {
     if (kind === "stone" && /(?:태양|솔라)\s*코어|solar\s*core/i.test(normalized)) continue;
     const alias = aliases.find((entry) => dense.includes(compact(entry)));
@@ -72,6 +73,7 @@ export function parseAnalysisCommandV64(question: string, data: CanonicalGameDat
       ?? normalized.match(new RegExp(`([\\d,.]+\\s*(?:만|천|k|m)?)\\s*(?:개의?|만큼의?)?\\s*${escaped}`, "i"));
     const amount = amountMatch ? parseKoreanNumberV64(amountMatch[1].replace(/\s/g, "")) : null;
     if (amount === null) continue;
+    diceQuery = diceQuery.replace(amountMatch![0], " ");
     if (/\+|더|추가|늘|있으면|가정/.test(normalized)) resourceDelta[kind] = amount;
     else resourceOverride[kind] = amount;
     matched.push(`resource:${kind}`);
@@ -88,10 +90,11 @@ export function parseAnalysisCommandV64(question: string, data: CanonicalGameDat
           : /dps|공격|딜/.test(normalized) ? "basic-dps" : undefined;
   if (goal) matched.push(`goal:${goal}`);
 
-  const fuzzyStopWords = new Set(["기준", "다시", "계산", "경로", "주사위", "목표", "다음", "비교", "협동", "대전", "효율", "덱"]);
-  const queryTokens = normalized.split(/[^0-9a-z가-힣]+/i).map(compact).filter((token) => token.length >= 2 && !fuzzyStopWords.has(token));
+  const fuzzyStopWords = new Set(["기준", "다시", "계산", "경로", "주사위", "목표", "다음", "비교", "협동", "대전", "효율", "덱", "골드", "gold", "코어", "다이스코어", "core", "dicecore"]);
+  const diceDense = compact(diceQuery);
+  const queryTokens = diceQuery.split(/[^0-9a-z가-힣]+/i).map(compact).filter((token) => token.length >= 2 && !fuzzyStopWords.has(token));
   const diceAliases = localizedDiceAliases(data).filter((candidate) => candidate.normalized.length >= 2);
-  const exactDiceMatches = diceAliases.filter((candidate) => dense.includes(candidate.normalized));
+  const exactDiceMatches = diceAliases.filter((candidate) => diceDense.includes(candidate.normalized));
   const exactDice = (exactDiceMatches.length ? exactDiceMatches : diceAliases.filter((candidate) => queryTokens.some((token) => editDistanceAtMostOne(token, candidate.normalized))))
     .sort((left, right) => right.normalized.length - left.normalized.length)[0];
   const targetDiceId = exactDice?.id;

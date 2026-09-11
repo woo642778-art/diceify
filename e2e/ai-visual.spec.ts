@@ -24,6 +24,7 @@ test("V6.4 AI workspace remains legible across seven required viewports", async 
     await workspace.getByLabel("Diceify에 분석 조건 질문").fill("골드 100만 코어 1000 다음 4개");
     await workspace.getByRole("button", { name: "분석", exact: true }).click();
     await expect(workspace).toContainText("지금은 이 경로");
+    await expect(workspace.getByLabel("분석 주사위")).toHaveValue("predator");
     await expect(workspace).not.toContainText(/모델 다운로드|WebGPU|LOCAL FIRST/);
     const dimensions = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
     expect(dimensions.width).toBeLessThanOrEqual(dimensions.viewport + 1);

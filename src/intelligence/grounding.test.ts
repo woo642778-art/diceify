@@ -23,6 +23,14 @@ describe("local explanation grounding", () => {
     expect(parseAnalysisCommandV64("코어 100개 더 있고 다음 4개", gameDataV3)).toMatchObject({
       confidence: "high", maxPurchases: 4, resourceDelta: { stone: 100 },
     });
+    const resourceOnly = parseAnalysisCommandV64("골드 100만 코어 1000 다음 4개", gameDataV3);
+    expect(resourceOnly).toMatchObject({
+      confidence: "high", maxPurchases: 4, resourceOverride: { gold: 1_000_000, stone: 1_000 },
+    });
+    expect(resourceOnly).not.toHaveProperty("targetDiceId");
+    const solarResourceOnly = parseAnalysisCommandV64("태양 코어 50 다음 2개", gameDataV3);
+    expect(solarResourceOnly).toMatchObject({ maxPurchases: 2, resourceOverride: { solarCore: 50 } });
+    expect(solarResourceOnly).not.toHaveProperty("targetDiceId");
     expect(parseAnalysisCommandV64("골드 20만 협동 기준", gameDataV3)).toMatchObject({
       confidence: "high", goal: "coop", resourceOverride: { gold: 200_000 },
     });
