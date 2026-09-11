@@ -3,6 +3,7 @@ import { BUILT_IN_META_SNAPSHOTS_V47, metaUsageTimelineV47, parseMetaSnapshotV47
 
 describe("meta time machine", () => {
   it("preserves the built-in ranking snapshot and computes usage", () => {
+    expect(BUILT_IN_META_SNAPSHOTS_V47[0].clientVersion).toBe("1.0.1");
     const timeline = metaUsageTimelineV47(BUILT_IN_META_SNAPSHOTS_V47, "adjust");
     expect(timeline).toHaveLength(1);
     expect(timeline[0].share).toBe(1);

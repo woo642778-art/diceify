@@ -90,15 +90,22 @@ import type { ScreenshotAccountDraftV52 } from "../../../account/screenshotImpor
 import { hasUnreadUpdateV55 } from "../../../updates/updateWatchV55";
 import { useLiveGameStatusV62 } from "../../../live-data/useLiveGameStatusV62";
 import { LiveDataIndicatorV62 } from "../updates/LiveDataIndicatorV62";
+import type { IntelligenceResultV63 } from "../../../intelligence/types";
 
 const OnlinePlatformView = lazy(() =>
   import("../community/OnlinePlatformView").then((module) => ({
     default: module.OnlinePlatformView,
   })),
 );
+const AIIntelligenceWorkspace = lazy(() =>
+  import("../intelligence/AIIntelligenceWorkspace").then((module) => ({
+    default: module.AIIntelligenceWorkspace,
+  })),
+);
 
 type Tab =
   | "home"
+  | "ai"
   | "account"
   | "tree"
   | "simulator"
@@ -118,6 +125,7 @@ type TreeViewCommandV53 = {
 
 const PRIMARY_TABS: Tab[] = [
   "home",
+  "ai",
   "decks",
   "dice",
   "tree",
@@ -129,6 +137,7 @@ const TOOL_TABS: Tab[] = ["simulator", "community", "tier", "compare", "shop", "
 function tabLabel(tab: Tab, locale: "ko" | "en") {
   const labels: Record<Tab, { ko: string; en: string }> = {
     home: { ko: "홈", en: "Home" },
+    ai: { ko: "AI 분석", en: "AI Intelligence" },
     account: { ko: "내 계정", en: "My Account" },
     tree: { ko: "다이스 트리", en: "Dice Tree" },
     simulator: { ko: "시뮬레이터", en: "Simulator" },
@@ -276,6 +285,7 @@ export function V3Shell() {
   );
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   const [guidedRouteOpen, setGuidedRouteOpen] = useState(false);
+  const [intelligenceOverlay, setIntelligenceOverlay] = useState<IntelligenceResultV63["overlay"]>({});
   const [familyFilter, setFamilyFilter] = useState<DiceFamilyV3 | "all">("all");
   const [query, setQuery] = useState("");
   const [heatmapMode, setHeatmapMode] = useState<TreeHeatmapModeV3>("none");
@@ -527,6 +537,7 @@ export function V3Shell() {
     const tabs: Array<{ id: string; kind: "tab"; tab: Tab; label: string }> = (
       [
         "home",
+        "ai",
         "account",
         "tree",
         "simulator",
@@ -1843,6 +1854,32 @@ export function V3Shell() {
 
       {tab === "home" && <DiceifyHome data={gameDataV3} locale={locale} onNavigate={openTab} onSelectDice={(diceId)=>{dispatch({type:"setScenario",scenario:{diceId,conditionValues:{}}});setTab("dice");}} gold={Math.max(0,resources.remaining.gold)} core={Math.max(0,resources.remaining.stone)} solarCore={Math.max(0,resources.remaining.solarCore??0)} plannedNodes={Object.keys(state.simulatedRanks).length} targetDiceId={state.scenario.diceId} activeDeckIds={activeDeckIds} liveStatus={liveStatus} />}
 
+      {tab === "ai" && (
+        <Suspense fallback={<main className="v63-ai-loading">{locale === "ko" ? "AI 결정 엔진을 불러오는 중입니다." : "Loading the intelligence engine."}</main>}>
+          <AIIntelligenceWorkspace
+            data={gameDataV3}
+            locale={locale}
+            input={currentInput}
+            resources={{
+              gold: Math.max(0, resources.remaining.gold),
+              stone: Math.max(0, resources.remaining.stone),
+              solarCore: Math.max(0, resources.remaining.solarCore ?? 0),
+            }}
+            activeDeckIds={activeDeckIds}
+            onApplyRanks={(ranks) => dispatch({ type: "applyRoute", ranks })}
+            onViewTree={(result) => {
+              setIntelligenceOverlay(result.overlay);
+              setTab("tree");
+            }}
+            onInspectNode={(result, nodeId) => {
+              setIntelligenceOverlay(result.overlay);
+              setSelectedNodeId(nodeId);
+              setTab("tree");
+            }}
+          />
+        </Suspense>
+      )}
+
       {tab === "account" && (
         <AccountIntelligenceView
           data={gameDataV3}
@@ -2022,6 +2059,7 @@ export function V3Shell() {
               selectedNodeId={selectedNodeId}
               selectedDiceId={state.scenario.diceId}
               recommendedIds={recommendedIds}
+              intelligenceOverlay={intelligenceOverlay}
               heatmap={heatmap}
               heatmapMode={heatmapMode}
               showCosts={showTreeCosts}
@@ -2453,20 +2491,20 @@ export function V3Shell() {
             locale === "ko" ? "모바일 주요 화면" : "Mobile primary views"
           }
         >
-          {(["home", "decks", "tree"] as Tab[]).map((item) => (
+          {(["home", "ai", "tree"] as Tab[]).map((item) => (
             <button
               key={item}
               type="button"
               className={tab === item ? "is-active" : ""}
               onClick={() => openTab(item)}
             >
-              <span aria-hidden="true"><UiIcon name={item === "home" ? "home" : item === "tree" ? "tree" : "deck"} size={18} /></span>
+              <span aria-hidden="true"><UiIcon name={item === "home" ? "home" : item === "tree" ? "tree" : "analysis"} size={18} /></span>
               {tabLabel(item, locale)}
             </button>
           ))}
           <button
             type="button"
-            className={`${TOOL_TABS.includes(tab) || ["dice","rankings","guild","account"].includes(tab) ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`}
+            className={`${TOOL_TABS.includes(tab) || ["decks","dice","rankings","guild","account"].includes(tab) ? "is-active" : ""} ${updateUnread ? "has-update" : ""}`}
             aria-expanded={moreOpen}
             onClick={() => setMoreOpen(true)}
           >
@@ -2501,7 +2539,7 @@ export function V3Shell() {
               </button>
             </header>
             <div className="v53-more-grid">
-              {(["dice", "rankings", "guild", "account", ...TOOL_TABS] as Tab[]).map((item) => (
+              {(["decks", "dice", "rankings", "guild", "account", ...TOOL_TABS] as Tab[]).map((item) => (
                 <button
                   key={item}
                   type="button"

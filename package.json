@@ -21,6 +21,7 @@
     "db:local:migrate": "wrangler d1 migrations apply dicetree-staging --local"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.85",
     "hono": "^4.13.7",
     "jose": "^6.2.11",
     "qrcode.react": "^4.2.0",

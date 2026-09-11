@@ -6,6 +6,7 @@ import { nextRankCost } from "../../../planner-v3/costs";
 import { bindNativeTreeGestureGuardV55, clampTreeScale, MAX_TREE_SCALE, usePanZoom } from "../../tree/usePanZoom";
 import { TreeNodeV3 } from "./TreeNodeV3";
 import type { TreeHeatmapEntryV3, TreeHeatmapModeV3 } from "../../../optimizer/treeHeatmapV3";
+import type { IntelligenceOverlayStateV63 } from "../../../intelligence/types";
 
 export interface TreeCanvasV3Props {
   data: CanonicalGameData;
@@ -15,6 +16,7 @@ export interface TreeCanvasV3Props {
   selectedNodeId?: string;
   selectedDiceId?: string;
   recommendedIds?: ReadonlySet<string>;
+  intelligenceOverlay?: Readonly<Record<string, IntelligenceOverlayStateV63>>;
   heatmap?: ReadonlyMap<string, TreeHeatmapEntryV3>;
   heatmapMode?: TreeHeatmapModeV3;
   showCosts?: boolean;
@@ -283,6 +285,7 @@ export function TreeCanvasV3({
   selectedNodeId,
   selectedDiceId,
   recommendedIds = new Set<string>(),
+  intelligenceOverlay = {},
   heatmap = new Map<string, TreeHeatmapEntryV3>(),
   heatmapMode = "none",
   showCosts = true,
@@ -375,7 +378,7 @@ export function TreeCanvasV3({
   const visibleIds = useMemo(() => new Set(matchingNodes.map((node) => node.id)), [matchingNodes]);
   const renderIds = useMemo(() => {
     if (!mobileSafeRendering || view.scale < 1.15) return new Set(nodes.map((node) => node.id));
-    const keepIds = new Set<string>([...recommendedIds, ...visibleIds, ...prerequisiteFocusIds]);
+    const keepIds = new Set<string>([...recommendedIds, ...Object.keys(intelligenceOverlay), ...visibleIds, ...prerequisiteFocusIds]);
     if (!normalizedQuery) keepIds.clear();
     if (selectedNodeId) keepIds.add(selectedNodeId);
     return visibleTreeNodeIdsV52(nodes, view, {
@@ -384,7 +387,7 @@ export function TreeCanvasV3({
       minY: bounds.minY - margin,
       maxY: bounds.maxY + margin,
     }, keepIds);
-  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, margin, mobileSafeRendering, nodes, normalizedQuery, prerequisiteFocusIds, recommendedIds, selectedNodeId, view, visibleIds]);
+  }, [bounds.maxX, bounds.maxY, bounds.minX, bounds.minY, intelligenceOverlay, margin, mobileSafeRendering, nodes, normalizedQuery, prerequisiteFocusIds, recommendedIds, selectedNodeId, view, visibleIds]);
 
   const jumpToNodes = useCallback((targets: readonly DiceTreeNodeV3[], minimumScale = 1.15) => {
     if (!targets.length) return;
@@ -475,13 +478,16 @@ export function TreeCanvasV3({
           const invested = parentRank >= prerequisite.minRank && nodeRank > 0;
           const simulated = invested && (parentSimulated || nodeSimulated);
           const recommended = recommendedIds.has(parent.id) && recommendedIds.has(node.id);
+          const intelligenceState = intelligenceOverlay[parent.id] && intelligenceOverlay[node.id]
+            ? intelligenceOverlay[node.id]
+            : undefined;
           const dimmed = !visibleIds.has(parent.id) && !visibleIds.has(node.id);
           const focusPath = prerequisiteFocusIds.has(parent.id) && prerequisiteFocusIds.has(node.id);
           const contextDimmed = prerequisiteFocusIds.size > 0 && !focusPath;
           return <line
             key={`${parent.id}-${node.id}`}
             data-testid={`v3-edge-${parent.id}-${node.id}`}
-            className={`v3-tree-edge ${invested ? "is-invested" : ""} ${simulated ? "is-simulated" : ""} ${recommended ? "is-recommended" : ""} ${focusPath ? "is-focus-path" : ""} ${contextDimmed ? "is-context-dimmed" : ""} ${dimmed ? "is-dimmed" : ""}`}
+            className={`v3-tree-edge ${invested ? "is-invested" : ""} ${simulated ? "is-simulated" : ""} ${recommended ? "is-recommended" : ""} ${intelligenceState ? `is-ai-${intelligenceState}` : ""} ${focusPath ? "is-focus-path" : ""} ${contextDimmed ? "is-context-dimmed" : ""} ${dimmed ? "is-dimmed" : ""}`}
             x1={parent.position.x}
             y1={-parent.position.y}
             x2={node.position.x}
@@ -500,6 +506,7 @@ export function TreeCanvasV3({
             simulatedRank={simulatedRank}
             selected={selectedNodeId === node.id}
             recommended={recommendedIds.has(node.id)}
+            intelligenceState={intelligenceOverlay[node.id]}
             dimmed={!visibleIds.has(node.id) || (prerequisiteFocusIds.size > 0 && !prerequisiteFocusIds.has(node.id))}
             canIncrement={canIncrementNodeV3(node, ownedRanks, simulatedRanks)}
             showCost={showCosts}

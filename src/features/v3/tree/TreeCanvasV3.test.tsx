@@ -84,6 +84,17 @@ describe("TreeCanvasV3", () => {
     expect(screen.getByTestId("v3-edge-root-child")).toHaveClass("is-context-dimmed");
   });
 
+  it("exposes distinct AI route states on nodes and edges", () => {
+    renderTree({
+      intelligenceOverlay: { root: "next", child: "later", locked: "alternative" },
+      focusPrerequisites: false,
+    });
+    expect(screen.getByTestId("v3-node-root")).toHaveAttribute("data-ai-state", "next");
+    expect(screen.getByTestId("v3-node-child")).toHaveClass("is-ai-later");
+    expect(screen.getByTestId("v3-node-locked")).toHaveClass("is-ai-alternative");
+    expect(screen.getByTestId("v3-edge-root-child")).toHaveClass("is-ai-later");
+  });
+
   it("counts effective invested ranks by family without double-counting simulations", () => {
     expect(familyInvestmentLevelsV3(nodes, { root: 1, child: 1 }, { child: 3, locked: 1 })).toEqual({
       nature: 0,

@@ -2,6 +2,8 @@ import { CO_OP_RANKING_SNAPSHOT, CO_OP_RANKING_SNAPSHOT_DATE, type CoOpRankedDec
 
 export interface MetaSnapshotV47 {
   date: string;
+  /** Patch observed by the capture. Omitted only for legacy user imports. */
+  clientVersion?: string;
   mode: "coop";
   decks: readonly CoOpRankedDeck[];
   source: "user-captures" | "imported-json";
@@ -11,6 +13,7 @@ export interface MetaUsagePointV47 { date: string; decks: number; share: number;
 
 export const BUILT_IN_META_SNAPSHOTS_V47: readonly MetaSnapshotV47[] = [{
   date: CO_OP_RANKING_SNAPSHOT_DATE,
+  clientVersion: "1.0.1",
   mode: "coop",
   decks: CO_OP_RANKING_SNAPSHOT,
   source: "user-captures",
@@ -31,5 +34,5 @@ export function parseMetaSnapshotV47(value: string): MetaSnapshotV47 {
     if (!Number.isInteger(deck.rank) || ranks.has(deck.rank) || !Array.isArray(deck.diceIds) || deck.diceIds.length !== 5) throw new Error("Each deck needs a unique rank and five dice");
     ranks.add(deck.rank);
   }
-  return { date: parsed.date!, mode: "coop", decks: parsed.decks, source: "imported-json" };
+  return { date: parsed.date!, ...(typeof parsed.clientVersion === "string" && parsed.clientVersion ? { clientVersion: parsed.clientVersion } : {}), mode: "coop", decks: parsed.decks, source: "imported-json" };
 }

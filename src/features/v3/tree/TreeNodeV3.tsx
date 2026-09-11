@@ -2,6 +2,7 @@ import type { CSSProperties, KeyboardEvent } from "react";
 import type { DiceTreeNodeV3, TreeCost } from "../../../game-data/types";
 import { diceIconUrl } from "../shared/DiceIcon";
 import type { TreeHeatmapEntryV3 } from "../../../optimizer/treeHeatmapV3";
+import type { IntelligenceOverlayStateV63 } from "../../../intelligence/types";
 
 const FAMILY_COLOR: Record<DiceTreeNodeV3["family"], string> = {
   core: "#6f5de7",
@@ -19,6 +20,7 @@ export interface TreeNodeV3Props {
   simulatedRank: number;
   selected: boolean;
   recommended: boolean;
+  intelligenceState?: IntelligenceOverlayStateV63;
   dimmed: boolean;
   canIncrement: boolean;
   showCost?: boolean;
@@ -62,6 +64,7 @@ export function TreeNodeV3({
   simulatedRank,
   selected,
   recommended,
+  intelligenceState,
   dimmed,
   canIncrement,
   showCost = true,
@@ -90,6 +93,7 @@ export function TreeNodeV3({
     `is-${state}`,
     selected ? "is-selected" : "",
     recommended ? "is-recommended" : "",
+    intelligenceState ? `is-ai-${intelligenceState}` : "",
     dimmed ? "is-dimmed" : "",
     heatmap
       ? `is-heat-${heatmap.grade.toLowerCase().replace("?", "unknown")}`
@@ -115,6 +119,7 @@ export function TreeNodeV3({
       data-owned-rank={ownedRank}
       data-simulated-rank={simulatedRank}
       data-roi-grade={heatmap?.grade}
+      data-ai-state={intelligenceState}
       transform={`translate(${node.position.x} ${-node.position.y})`}
       style={{ "--family": FAMILY_COLOR[node.family] } as CSSProperties}
       role="treeitem"
