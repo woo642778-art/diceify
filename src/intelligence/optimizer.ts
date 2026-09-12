@@ -64,16 +64,67 @@ function candidateNodeIds(data: CanonicalGameData, request: IntelligenceRequestV
     const passive = node.passiveOrRuneRef
       ? data.passives.find((entry) => entry.id === node.passiveOrRuneRef)
       : undefined;
-    if (passive && (passive.scope !== "dice" || passive.targetDiceIds?.includes(diceId))) {
+    const selectedFamily = data.dice.find((dice) => dice.id === diceId)?.family;
+    const passiveApplies = passive && (passive.scope === "global"
+      || passive.scope === selectedFamily
+      || (passive.scope === "dice" && passive.targetDiceIds?.includes(diceId)));
+    if (passiveApplies) {
       includePrerequisites(node);
       continue;
     }
     const rune = node.passiveOrRuneRef?.startsWith("rune:")
       ? data.runes.find((entry) => entry.id === node.passiveOrRuneRef!.slice("rune:".length))
       : undefined;
-    if (rune && (!rune.targetDiceId || rune.targetDiceId === diceId)) includePrerequisites(node);
+    if (rune && (!rune.targetDiceId && !(rune.targetDiceIds?.length)
+      || rune.targetDiceId === diceId
+      || rune.targetDiceIds?.includes(diceId))) includePrerequisites(node);
   }
   return relevant;
+}
+
+export function intelligenceCandidateNodeIdsV65(data: CanonicalGameData, request: IntelligenceRequestV63) {
+  return candidateNodeIds(data, request);
+}
+
+export function intelligenceResourceEventsV65(
+  data: CanonicalGameData,
+  request: IntelligenceRequestV63,
+  maxVisitedStates = MAX_VISITED_STATES,
+) {
+  const relevantIds = candidateNodeIds(data, request);
+  const candidates = data.tree.filter((node) => relevantIds.has(node.id));
+  const resources = ["gold", "stone", "solarCore"] as const;
+  const events = { gold: new Set<number>(), stone: new Set<number>(), solarCore: new Set<number>() };
+  const visited = new Set<string>();
+  let complete = true;
+  const amount = (cost: TreeCost, resource: typeof resources[number]) => cost[resource] ?? 0;
+  const walk = (ranks: Record<string, number>, spent: TreeCost, depth: number) => {
+    const key = rankKey(ranks);
+    if (visited.has(key)) return;
+    if (visited.size >= maxVisitedStates) { complete = false; return; }
+    visited.add(key);
+    if (depth > 0) for (const resource of resources) {
+      const otherResourcesFit = resources.every((candidate) => candidate === resource || amount(spent, candidate) <= amount(request.resources, candidate));
+      const shortage = amount(spent, resource) - amount(request.resources, resource);
+      if (otherResourcesFit && shortage > 0) events[resource].add(shortage);
+    }
+    if (depth >= request.maxPurchases) return;
+    const exceededCurrencies = resources.filter((resource) => amount(spent, resource) > amount(request.resources, resource)).length;
+    if (exceededCurrencies > 1) return;
+    for (const node of candidates) {
+      const rank = ranks[node.id] ?? 0;
+      if (rank >= node.maxRank || !prerequisitesMet(node, ranks)) continue;
+      const cost = nextRankCost(node, rank);
+      if (!cost) continue;
+      walk({ ...ranks, [node.id]: rank + 1 }, addTreeCosts(spent, cost), depth + 1);
+    }
+  };
+  walk({ ...request.input.treeRanks }, { ...ZERO_TREE_COST }, 0);
+  return {
+    events: Object.fromEntries(resources.map((resource) => [resource, [...events[resource]].sort((left, right) => left - right)])) as Record<typeof resources[number], number[]>,
+    complete,
+    visitedStates: visited.size,
+  };
 }
 
 function metricsFor(

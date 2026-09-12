@@ -15,6 +15,7 @@ const routeSchema = z.object({
 }).strict();
 
 const contextSchema = z.object({
+  revisionId: z.string().min(1).max(96).optional(),
   dataVersion: z.string().min(1).max(96),
   metaSnapshot: z.string().max(80).nullable().optional(),
   goal: z.enum(["basic-dps", "resource-efficiency", "target-dice", "pvp", "coop"]),
@@ -27,6 +28,24 @@ const contextSchema = z.object({
     shortage: resourceSchema,
   }).strict(),
   selectedNodeId: z.string().min(1).max(80).optional(),
+  decisionSupport: z.object({
+    stability: z.enum(["high", "medium", "low"]),
+    evidenceConfidence: z.enum(["high", "medium", "low"]),
+    reasons: z.array(z.string().min(1).max(300)).max(12),
+    routeChangeBreakpoint: z.object({
+      resource: z.enum(["gold", "stone", "solarCore"]),
+      amount: z.number().int().min(1).max(1_000_000_000),
+      routeNodeIds: z.array(z.string().min(1).max(80)).max(8),
+    }).strict().nullable(),
+    contributions: z.array(z.object({
+      nodeId: z.string().min(1).max(80),
+      fromRank: z.number().int().min(0).max(100),
+      toRank: z.number().int().min(1).max(100),
+      role: z.enum(["direct", "bridge"]),
+      metric: z.enum(["target-step", "practical-dps", "basic-attack-dps", "unverified"]),
+      value: z.number().finite().nullable(),
+    }).strict()).max(8),
+  }).strict().optional(),
 }).strict();
 
 const baseSchema = z.object({

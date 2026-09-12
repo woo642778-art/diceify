@@ -1,0 +1,14 @@
+{
+  "clientVersion": "1.1.0",
+  "diceId": "predator",
+  "resources": { "gold": 100000, "stone": 378, "solarCore": 0 },
+  "goal": "target-dice",
+  "maxPurchases": 4,
+  "expected": {
+    "route": [["5002", 1], ["5007", 1], ["5207", 1], ["5207", 2]],
+    "cost": { "gold": 2800, "stone": 16 },
+    "remaining": { "gold": 97200, "stone": 362, "solarCore": 0 },
+    "decision": "spend",
+    "complete": true
+  }
+}

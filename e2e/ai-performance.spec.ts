@@ -11,16 +11,21 @@ test("V6.4 measures initial recommendation, resource recalc, and local command l
   const initialMs = Date.now() - initialStarted;
 
   await workspace.getByLabel("Gold").fill("1000000");
+  const goldRevision = await workspace.locator(".v64-result").getAttribute("data-analysis-revision");
+  await expect.poll(() => workspace.locator(".v64-result").getAttribute("data-analysis-revision")).not.toBe(goldRevision);
+  const beforeCoreRevision = await workspace.locator(".v64-result").getAttribute("data-analysis-revision");
   const recalcStarted = Date.now();
   await workspace.getByLabel("Core", { exact: true }).fill("1000");
-  await workspace.locator(".v64-route-hero").waitFor();
+  await expect.poll(() => workspace.locator(".v64-result").getAttribute("data-analysis-revision")).not.toBe(beforeCoreRevision);
   const resourceRecalcMs = Date.now() - recalcStarted;
   const optimizerMs = Number(await workspace.locator(".v64-result").getAttribute("data-optimizer-ms"));
 
   const localParseStarted = Date.now();
+  const beforeCommandRevision = await workspace.locator(".v64-result").getAttribute("data-analysis-revision");
   await workspace.getByLabel("Diceify에 분석 조건 질문").fill("코어 50개 더");
   await workspace.getByRole("button", { name: "분석", exact: true }).click();
-  await expect(workspace.getByText("Core · +50", { exact: true })).toBeVisible();
+  await expect(workspace.getByText(/Core .*→ 1,050/)).toBeVisible();
+  await expect.poll(() => workspace.locator(".v64-result").getAttribute("data-analysis-revision")).not.toBe(beforeCommandRevision);
   const localParseMs = Date.now() - localParseStarted;
 
   await testInfo.attach("diceify-ai-latency.json", {

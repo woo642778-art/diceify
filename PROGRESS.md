@@ -1,16 +1,14 @@
-# Progress: Diceify 즉시형 Hosted AI 분석 재구축
+# Progress: Diceify Intelligence Phase 2 decision engine
 
-- Status: active
-- Milestone: 7/8 (88%)
-- Updated: 2026-09-11T16:28:17
-- Current work: 라이브 배포본에서 재화 단어 코어가 퍼지 검색으로 기어 주사위에 잘못 매칭되는 결함을 발견했다. 숫자가 붙은 재화 구문을 주사위 검색 입력에서 제거하고, 골드·코어·태양 코어 단독 명령이 목표 주사위를 바꾸지 않는 단위·7해상도 브라우저 회귀 검사를 추가해 통과했다.
+- Status: completed
+- Milestone: 8/8 (100%)
+- Updated: 2026-09-12T01:13:31
+- Current work: P0/P1 production scope complete: authoritative base/scenario state, stable 64-bit revisions, stale optimizer/AI invalidation, exact event breakpoints including composite paths, stability and evidence confidence, resource bottlenecks, counterfactuals, save-vs-spend truth boundaries, decision-first responsive UI, golden/property/contract/integration/browser coverage. P2/P3 items requiring per-dice account state, verified live APIs, history or community services remain intentionally deferred.
 
 ## Log
-- 2026-09-11T02:25:06 | 1/8 | 현행 AI 화면, WebLLM 의존성, 결정론 최적화기, V3 계정 상태, Cloudflare AI 바인딩과 공개 API 인증 경계를 확인했다. 프런트 로컬 모델 파일 3개와 의존성 1개가 제거 대상이며, 기존 Worker에 분석 전용 제한 엔드포인트를 추가한다.
-- 2026-09-11T02:37:29 | 2/8 | WebLLM Worker, Qwen 모델 카탈로그와 클라이언트, @mlc-ai/web-llm 의존성을 제거했다. 패키지 잠금 파일을 재생성했으며 저장소 검색에서 로컬 AI 다운로드, WebGPU, LOCAL FIRST 문구가 남지 않았다.
-- 2026-09-11T02:44:32 | 3/8 | AI 화면을 단일 명령 상태와 2열 정보 구조로 재구축했다. 첫 진입 자동 계산, 180ms 재계산, 이전 결과 유지, 직접 재화 편집, 주사위와 목표 변경, 가정 초기화, 실트리 오버레이 연결, 대안과 breakpoint 비교를 구현했다. 프런트 전체 87개 파일 284개 테스트가 통과했다.
-- 2026-09-11T02:44:32 | 4/8 | 한국어 단위, 재화 증감과 절대값, 다음 구매 횟수, PvP와 협동, 현지화 주사위 이름을 해석하는 로컬 파서를 추가했다. 일반 명령은 서버를 호출하지 않고, 대명사와 방향 지시처럼 모호한 요청만 Hosted AI 해석기로 보낸다.
-- 2026-09-11T02:44:44 | 5/8 | Cloudflare Workers AI 제공자 추상화와 /api/v1/ai 엔드포인트를 추가했다. 서버 전용 GLM-4.7-Flash 구성, 구조화 의도 검증, 숫자 주장 차단 SSE, Origin과 크기 제한, IP 분당 제한, 전역 일일 예산, timeout, 429와 5xx 폴백을 구현했다. Worker 4개 파일 26개 테스트가 통과했다.
-- 2026-09-11T16:19:40 | 6/8 | 7개 요구 해상도에서 실제 AI 화면을 캡처하고 데스크톱과 모바일을 직접 점검했다. 명령창 뒤 첫 유효 화면에 추천 경로가 나타나며, 모바일 조건 시트와 트리 오버레이가 정상 동작했다. 최신 측정은 첫 결과 1238ms, 최적화 5.2ms, 자원 재계산 253ms, 로컬 파싱 113ms다.
-- 2026-09-11T16:19:40 | 7/8 | 프런트 87개 파일 285개 테스트, Worker 4개 파일 26개 테스트, 양쪽 타입 검사, Vite 빌드와 Wrangler dry-run을 통과했다. 전체 Playwright는 데스크톱과 모바일 합계 70개 중 61개 통과, 9개 의도적 제외로 완료됐고 git diff 검사에도 공백 오류가 없다.
-- 2026-09-11T16:28:17 | 7/8 | 라이브 배포본에서 재화 단어 코어가 퍼지 검색으로 기어 주사위에 잘못 매칭되는 결함을 발견했다. 숫자가 붙은 재화 구문을 주사위 검색 입력에서 제거하고, 골드·코어·태양 코어 단독 명령이 목표 주사위를 바꾸지 않는 단위·7해상도 브라우저 회귀 검사를 추가해 통과했다.
+- 2026-09-12T00:26:32 | 1/8 | Phase 1 저장소와 실행 경로를 감사했다. 분산된 의미 상태, 재화에만 한정된 가정 구분, JSON.stringify 캐시 키, Worker 계산 미취소, AI 스트림의 revision 부재, 단순 최저비용 노드 기반 임계점, 고정 quick action, 안정성·근거 신뢰도·병목·변경 원인 부재를 확인했다. 기준선은 관련 24개 테스트 통과, 첫 결과 1011ms, 최적화 4.3ms, 재계산 218ms, 로컬 파싱 96ms, AI 청크 36KB, 메인 청크 864KB다.
+- 2026-09-12T00:41:37 | 3/8 | 단일 typed analysis state와 안정적 직렬화·revision ID를 도입했다. base는 불변으로 유지하고 모든 가정은 scenario override로 파생되며 reset은 정확히 원복된다. Worker와 hosted AI 요청에 AbortSignal 및 revision gate를 연결해 이전 계산·스트림 응답이 새 조건 결과를 덮지 못하게 했다. 타입 검사와 관련 10개 회귀 테스트가 통과했다.
+- 2026-09-12T00:51:24 | 5/8 | 정확한 event breakpoint 엔진, save-vs-spend, 추천 안정성, 독립 근거 신뢰도, 병목, 단계별 기여도, counterfactual 비교를 구현했다. 복합 경로 비용까지 열거해 단일 노드 부족분만 보던 오류를 제거했고, 실제 1.1.0 기준 target/basic/efficiency 8단계 분석은 8.3~35.8ms였다. seeded property·golden·UI·Worker AI 계약 테스트 20개가 통과했다.
+- 2026-09-12T01:02:44 | 6/8 | 결정 우선 UI를 완성했다. 계산된 재화별 route-change 칩, base/current/next 최대 3열 비교, 정확한 scenario reset, 추천 변경 원인, 재화별 병목, 단계별 기여도, 독립 안정성·근거 신뢰도, truth-bound AI context, 모호한 save-vs-spend tradeoff를 한국어·영어로 표시한다. 이전 revision에서는 저장·적용·AI 설명을 비활성화한다.
+- 2026-09-12T01:12:28 | 7/8 | 최종 검증에서 앱 단위 91파일 303테스트, Worker 4파일 26테스트, TypeScript 앱·Worker 검사, 앱 production build, Worker 배포 dry-run이 통과했다. 전체 Playwright 70시나리오는 61통과·의도적 9제외였고, 이후 최종 변경 대상 AI 회귀 4통과·2의도적 제외 및 7개 뷰포트 검사가 다시 통과했다. 최종 실측은 첫 결과 1005ms, optimizer 5.9ms, 재계산 169ms, 로컬 명령 249ms다.
+- 2026-09-12T01:13:31 | 8/8 | P0/P1 production scope complete: authoritative base/scenario state, stable 64-bit revisions, stale optimizer/AI invalidation, exact event breakpoints including composite paths, stability and evidence confidence, resource bottlenecks, counterfactuals, save-vs-spend truth boundaries, decision-first responsive UI, golden/property/contract/integration/browser coverage. P2/P3 items requiring per-dice account state, verified live APIs, history or community services remain intentionally deferred.

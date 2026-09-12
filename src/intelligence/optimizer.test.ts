@@ -106,6 +106,17 @@ describe("Diceify deterministic intelligence optimizer", () => {
     expect(result.limitations.join(" ")).toContain("모드 전용 점수");
   });
 
+  it("excludes family passives that do not apply to the selected dice", () => {
+    const foreignPassiveNode = { ...node("nature-only", 1), targetId: null, passiveOrRuneRef: "nature-passive" };
+    const data = {
+      ...fixture([foreignPassiveNode]),
+      passives: [{ id: "nature-passive", scope: "nature" as const, maxRank: 1, confidence: "verified" as const, sourceRefs: ["test:nature"] }],
+    };
+    const result = optimizeIntelligenceRouteV63(data, request({ maxPurchases: 1 }), { simulate: simulation(() => 10) });
+    expect(result.primary).toBeNull();
+    expect(result.search.candidateNodeRanks).toBe(0);
+  });
+
   it("removes dominated routes from the Pareto front", () => {
     const data = fixture([node("better", 2), node("worse", 4)]);
     const result = optimizeIntelligenceRouteV63(data, request({ maxPurchases: 1 }), { simulate: simulation((ranks) => ranks.better || ranks.worse ? 5 : 0) });

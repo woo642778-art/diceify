@@ -23,6 +23,7 @@ export interface HostedRouteSummaryV64 {
 }
 
 export interface HostedAnalysisContextV64 {
+  revisionId?: string;
   dataVersion: string;
   metaSnapshot?: string | null;
   goal: IntelligenceGoalV63;
@@ -35,6 +36,13 @@ export interface HostedAnalysisContextV64 {
     shortage: { gold: number; stone: number; solarCore?: number };
   };
   selectedNodeId?: string;
+  decisionSupport?: {
+    stability: "high" | "medium" | "low";
+    evidenceConfidence: "high" | "medium" | "low";
+    reasons: string[];
+    routeChangeBreakpoint: { resource: "gold" | "stone" | "solarCore"; amount: number; routeNodeIds: string[] } | null;
+    contributions: Array<{ nodeId: string; fromRank: number; toRank: number; role: "direct" | "bridge"; metric: "target-step" | "practical-dps" | "basic-attack-dps" | "unverified"; value: number | null }>;
+  };
 }
 
 export class HostedAIClientError extends Error {
@@ -52,25 +60,41 @@ async function responseError(response: Response) {
   return new HostedAIClientError(code, response.status);
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = 9_000) {
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = 9_000, externalSignal?: AbortSignal) {
   const controller = new AbortController();
+  const abort = () => controller.abort();
+  externalSignal?.addEventListener("abort", abort, { once: true });
+  if (externalSignal?.aborted) controller.abort();
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try { return await fetch(input, { ...init, signal: controller.signal }); }
   catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw new HostedAIClientError("ai_timeout", 504);
+    if (error instanceof DOMException && error.name === "AbortError") {
+      if (externalSignal?.aborted) throw new DOMException("AI request cancelled", "AbortError");
+      throw new HostedAIClientError("ai_timeout", 504);
+    }
     throw error;
-  } finally { window.clearTimeout(timer); }
+  } finally {
+    window.clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", abort);
+  }
 }
 
-async function readStreamWithTimeout(reader: ReadableStreamDefaultReader<Uint8Array>, timeoutMs = 9_000) {
+async function readStreamWithTimeout(reader: ReadableStreamDefaultReader<Uint8Array>, timeoutMs = 9_000, signal?: AbortSignal) {
   let timer: number | undefined;
+  let abort: (() => void) | undefined;
   try {
     return await Promise.race([
       reader.read(),
       new Promise<never>((_, reject) => { timer = window.setTimeout(() => reject(new HostedAIClientError("ai_stream_timeout", 504)), timeoutMs); }),
+      ...(signal ? [new Promise<never>((_, reject) => {
+        abort = () => reject(new DOMException("AI explanation cancelled", "AbortError"));
+        signal.addEventListener("abort", abort, { once: true });
+        if (signal.aborted) abort();
+      })] : []),
     ]);
   } finally {
     if (timer !== undefined) window.clearTimeout(timer);
+    if (abort) signal?.removeEventListener("abort", abort);
   }
 }
 
@@ -89,14 +113,15 @@ export async function parseHostedIntentV64(input: {
     knownDiceIds: string[];
     knownNodeIds: string[];
   };
-}): Promise<IntelligenceCommandV64 & { targetNodeId?: string; comparisonNodeId?: string }> {
+}, options: { signal?: AbortSignal } = {}): Promise<IntelligenceCommandV64 & { targetNodeId?: string; comparisonNodeId?: string }> {
+  if (options.signal?.aborted) throw new DOMException("AI request cancelled", "AbortError");
   ensureConfigured();
   const response = await fetchWithTimeout(platformUrl("/api/v1/ai"), {
     method: "POST",
     credentials: "omit",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({ task: "parse_intent", ...input }),
-  });
+  }, 9_000, options.signal);
   if (!response.ok) throw await responseError(response);
   const payload = await response.json() as { intent?: unknown };
   const parsed = hostedIntentSchema.safeParse(payload.intent);
@@ -124,7 +149,8 @@ export async function streamHostedExplanationV64(input: {
   locale: "ko" | "en";
   question: string;
   context: HostedAnalysisContextV64;
-}, onDelta: (text: string) => void) {
+}, onDelta: (text: string) => void, options: { signal?: AbortSignal } = {}) {
+  if (options.signal?.aborted) throw new DOMException("AI explanation cancelled", "AbortError");
   ensureConfigured();
   const cacheKey = JSON.stringify(input);
   const cached = explanationCache.get(cacheKey);
@@ -135,7 +161,7 @@ export async function streamHostedExplanationV64(input: {
     credentials: "omit",
     headers: { Accept: "text/event-stream", "Content-Type": "application/json" },
     body: JSON.stringify(input),
-  });
+  }, 9_000, options.signal);
   if (!response.ok) throw await responseError(response);
   if (!response.body) throw new HostedAIClientError("ai_empty_stream", 502);
   const reader = response.body.getReader();
@@ -156,13 +182,18 @@ export async function streamHostedExplanationV64(input: {
     text += payload.text;
     onDelta(payload.text);
   };
-  while (true) {
-    const chunk = await readStreamWithTimeout(reader);
-    if (chunk.done) break;
-    buffer += decoder.decode(chunk.value, { stream: true });
-    const events = buffer.split(/\r?\n\r?\n/);
-    buffer = events.pop() ?? "";
-    for (const event of events) consume(event);
+  try {
+    while (true) {
+      const chunk = await readStreamWithTimeout(reader, 9_000, options.signal);
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() ?? "";
+      for (const event of events) consume(event);
+    }
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
   }
   if (buffer.trim()) consume(buffer);
   if (!text.trim()) throw new HostedAIClientError("ai_empty_explanation", 502);

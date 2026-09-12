@@ -26,6 +26,12 @@ const explainBody = {
     resources: { gold: 100_000, stone: 100, solarCore: 0 },
     route: { nodeIds: ["5007"], cost: { gold: 0, stone: 8, solarCore: 0 }, remaining: { gold: 100_000, stone: 92, solarCore: 0 }, gainPercent: null, confidence: "partial" },
     alternatives: [], breakpoint: { decision: "no-verified-gain", shortage: { gold: 0, stone: 0, solarCore: 0 } },
+    revisionId: "analysis:1234567890abcdef",
+    decisionSupport: {
+      stability: "medium", evidenceConfidence: "medium", reasons: ["검증된 구조 근거"],
+      routeChangeBreakpoint: { resource: "stone", amount: 8, routeNodeIds: ["5207"] },
+      contributions: [{ nodeId: "5007", fromRank: 0, toRank: 1, role: "direct", metric: "target-step", value: 1 }],
+    },
   },
 };
 
